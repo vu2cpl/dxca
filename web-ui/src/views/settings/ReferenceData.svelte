@@ -114,15 +114,32 @@
       Open by default when there is no built-in key, because then it is the
       only way to get a country file at all.
     -->
-    <details class="advanced" open={!server.cfg.clublog_key_built_in}>
+    <details
+      class="advanced"
+      open={!server.cfg.clublog_key_built_in || server.cfg.clublog_key_rejected}
+    >
       <summary>
         Advanced
-        {#if server.cfg.clublog_api_key}
+        {#if server.cfg.clublog_key_rejected}
+          <span class="tag err">API key rejected</span>
+        {:else if server.cfg.clublog_api_key}
           <span class="tag">own API key set</span>
         {:else if !server.cfg.clublog_key_built_in}
           <span class="tag warn">API key needed</span>
         {/if}
       </summary>
+
+      {#if server.cfg.clublog_key_rejected}
+        <!-- Automatic refreshes have stopped, and a cty.xml that silently
+             stops updating is the kind of fault nobody notices for months.
+             Say it here, where the fix is. -->
+        <p class="rejected">
+          ClubLog answered <b>403</b> for the key in use, so cty.xml downloads
+          have stopped — ClubLog ask that a rejected credential not be retried,
+          and they firewall hosts that keep trying. Enter a different key below
+          and refreshes resume on their own.
+        </p>
+      {/if}
 
       <div class="settings-form">
         <span class="label">
@@ -345,5 +362,16 @@
 
   .advanced .tag.warn {
     color: var(--warn);
+  }
+
+  .advanced .tag.err {
+    color: var(--err);
+  }
+
+  .rejected {
+    margin: 0 0 0.5rem;
+    max-width: 60ch;
+    line-height: 1.5;
+    color: var(--err);
   }
 </style>

@@ -636,10 +636,42 @@ on the release binary found neither the key nor the pad. Full gate green.
 and unpushed there) — with a `trap`-based inject/clear in `notarize.sh`, since
 SwiftPM has no build-script step to write into a build directory.
 
-**Still to do:** ClubLog ask that a **403 disables further requests
-immediately** — they firewall repeat offenders by IP. Neither `refresh_cty`
-nor the LoTW/IOTA/FCC jobs treat 403 differently from any other non-200. None
-of them retries today so nothing misbehaves, but that is luck, not design.
+**403 handling landed the same session.** ClubLog ask that a rejected
+credential stop being sent immediately — their reactive firewall blocks the
+source IP for repeated bad-credential traffic, which would cut off ClubLog for
+**every account on the server**, not just the one that was wrong, and
+invisibly, since a firewalled host simply stops getting answers. Everything
+here runs on timers, so a wrong key meant a request every refresh interval,
+for ever.
+
+- `dxca-connect`'s `download_cty` / `download_adif` now return
+  **`ClubLogError`** — `Forbidden` (403) kept separate from `Other`
+  (timeouts, 5xx, a short body). A `Result<_, String>` had made a wrong key
+  and a flaky network indistinguishable, so both were retried identically.
+- `Db::set_credentials_rejected` / `credentials_rejected` store a **SHA-256
+  fingerprint of the credentials, not a flag**. That is what makes the latch
+  self-clearing: change the key and the fingerprint no longer matches, so
+  requests resume with no reset button for an admin to discover. Scoped
+  separately per credential set — `cty` for the server key, `user:<id>` per
+  account — because a wrong app password says nothing about the API key.
+- `refresh_cty` and `refresh_user` refuse a rejected set **before the
+  network**, latch on a 403, and clear on any success. `run_cty_if_due` and
+  `run_one_clublog_if_due` skip latched credentials **quietly** — an error
+  line every tick is noise, not news.
+- `GET /api/config/global` gained `clublog_key_rejected`, and Reference data
+  shows a red "API key rejected" tag plus an explanation, opening the
+  disclosure automatically. A cty.xml that silently stopped updating is the
+  kind of fault nobody notices for months.
+
+Two unit tests pin the behaviour against a fake ClubLog that counts requests:
+the point is not "does a 403 produce an error" but **"does the second attempt
+reach the network at all"** — it must not, and a changed credential must. The
+fake server drains the whole request before answering; replying to a POST
+mid-write made the first version fail intermittently with a broken pipe, which
+is worse than no test. Five consecutive runs green.
+
+**Not covered:** the LoTW, IOTA and FCC jobs are other people's endpoints, not
+ClubLog's, and none of them retries on a timer today.
 
 ---
 
@@ -824,6 +856,13 @@ which is now the rule for any host that is not noderedpi4.
   need the full proxy set: prefix `PATH="/opt/homebrew/opt/rustup/bin:$PATH"`
   (or symlink the missing proxies like the existing two). Plain builds work
   either way.
+- **A ClubLog 403 must never become a retry.** `refresh_cty` and
+  `refresh_user` check `Db::credentials_rejected` before going near the
+  network, and the automatic jobs skip latched credentials. ClubLog firewall
+  hosts that keep sending rejected credentials, and that punishes every
+  account on the server. The latch is a credentials *fingerprint*, so it
+  clears itself when the key or password changes — do not "improve" it into a
+  timestamp or a boolean, which would need a reset step nobody performs.
 - **The ClubLog API key must never become a committed constant.** It is baked
   in by `build.rs` from `DXCA_CLUBLOG_API_KEY` / the git-ignored
   `.clublog-api-key`, into `OUT_DIR` only. ClubLog delete keys they find in a

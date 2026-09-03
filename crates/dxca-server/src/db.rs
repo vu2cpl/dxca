@@ -1539,6 +1539,44 @@ impl Db {
         self.meta_set(CLUBLOG_API_KEY, key)
     }
 
+    /// Remember that ClubLog answered **403** for a particular set of
+    /// credentials, so nothing retries them.
+    ///
+    /// ClubLog ask that a 403 stop further requests immediately — their
+    /// reactive firewall blocks the source IP for repeated bad-credential
+    /// traffic, which would take out every ClubLog feature on the host, for
+    /// every account, not just the one with the wrong password. The automatic
+    /// jobs here run on timers, so without a latch a single wrong key becomes
+    /// a request every refresh interval, for ever.
+    ///
+    /// What is stored is a **fingerprint of the credentials, not a timestamp
+    /// or a flag** — that is what makes the latch self-clearing. Change the
+    /// key and the fingerprint no longer matches, so requests resume with no
+    /// "reset" button to find and no way to be stuck after a fix. The
+    /// fingerprint is a hash: this is a 0600 database, but there is no reason
+    /// for a second copy of a secret to sit in it.
+    pub fn set_credentials_rejected(&self, scope: &str, fingerprint: &str) -> DbResult<()> {
+        self.meta_set(&format!("clublog_403:{scope}"), fingerprint)
+    }
+
+    /// Clear a 403 latch — on any successful download, so a key that starts
+    /// working again (ClubLog side fixed, quota restored) is not held down by
+    /// a stale fingerprint.
+    pub fn clear_credentials_rejected(&self, scope: &str) -> DbResult<()> {
+        self.meta_set(&format!("clublog_403:{scope}"), "")
+    }
+
+    /// True when these exact credentials have already been rejected with a
+    /// 403 and must not be sent again.
+    pub fn credentials_rejected(&self, scope: &str, fingerprint: &str) -> bool {
+        !fingerprint.is_empty()
+            && self
+                .meta_get(&format!("clublog_403:{scope}"))
+                .ok()
+                .flatten()
+                .is_some_and(|stored| stored == fingerprint)
+    }
+
     /// One-time adoption of a per-user key from before the setting moved, so
     /// an operator who had one in their ClubLog tab keeps working with no
     /// manual step. Returns the callsign it took the key from, for the log.

@@ -175,6 +175,12 @@ fn run_cty_if_due(users: &UserService, days: u64) -> bool {
         // a server with no key simply keeps the cty.xml it was given.
         return false;
     }
+    if users.cty_key_rejected(&key) {
+        // ClubLog answered 403 for this key. They ask that further requests
+        // stop immediately, so this job stays off until the key changes —
+        // silently, because an error line every tick is noise, not news.
+        return false;
+    }
     let now = now_unix();
     if !is_due(
         now,
@@ -228,6 +234,12 @@ fn run_one_clublog_if_due(users: &UserService) {
         // Not set up far enough to download anything. (`refresh_hours <= 0`
         // is handled by is_due, which reads it as "switched off".)
         if cfg.callsign.is_empty() || cfg.email.is_empty() || cfg.app_password.is_empty() {
+            continue;
+        }
+        // ClubLog 403'd these credentials. Skip the account entirely rather
+        // than retry on the timer — and skip it quietly, since nothing about
+        // it will change until the operator edits their own settings.
+        if users.user_credentials_rejected(u.id) {
             continue;
         }
         // No matrix yet means never refreshed — due immediately.

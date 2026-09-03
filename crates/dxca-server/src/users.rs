@@ -81,6 +81,28 @@ fn now_unix() -> i64 {
         .as_secs() as i64
 }
 
+/// 403-latch scope for the server-wide cty.xml key.
+const CTY_SCOPE: &str = "cty";
+
+/// 403-latch scope for one account's ClubLog log credentials.
+fn user_scope(user_id: i64) -> String {
+    format!("user:{user_id}")
+}
+
+/// A stable, non-reversible id for a set of credentials, used to decide
+/// whether the thing ClubLog rejected with a 403 is still the thing we are
+/// about to send. Hashed rather than stored verbatim: the latch only needs to
+/// answer "same as last time?", never to reproduce the secret.
+pub fn credential_fingerprint(parts: &[&str]) -> String {
+    use sha2::{Digest, Sha256};
+    let mut h = Sha256::new();
+    for part in parts {
+        h.update(part.as_bytes());
+        h.update([0]); // length-independent separator: ("ab","c") != ("a","bc")
+    }
+    format!("{:x}", h.finalize())
+}
+
 impl UserService {
     /// Load the cached cty.xml (if present) and every stored matrix.
     pub fn new(
@@ -259,6 +281,24 @@ impl UserService {
     /// account happened to have an `api_key`. That meant any non-admin could
     /// swap a server-wide resource, and with automatic refresh every keyed
     /// user re-downloaded the same ~10 MB daily.
+    /// Whether ClubLog has already 403'd this API key, so the automatic jobs
+    /// can skip quietly instead of logging the same refusal every tick.
+    pub fn cty_key_rejected(&self, api_key: &str) -> bool {
+        self.db
+            .credentials_rejected(CTY_SCOPE, &credential_fingerprint(&[api_key]))
+    }
+
+    /// The same question for one account's log credentials.
+    pub fn user_credentials_rejected(&self, user_id: i64) -> bool {
+        let Ok(cfg) = self.db.clublog_config(user_id) else {
+            return false;
+        };
+        self.db.credentials_rejected(
+            &user_scope(user_id),
+            &credential_fingerprint(&[&cfg.callsign, &cfg.email, &cfg.app_password]),
+        )
+    }
+
     pub fn refresh_cty(&self, api_key: &str) -> Result<usize, String> {
         if api_key.is_empty() {
             return Err(
@@ -267,7 +307,30 @@ impl UserService {
                     .into(),
             );
         }
-        let xml = clublog::download_cty(&self.endpoints, api_key)?;
+
+        // ClubLog already said 403 for this exact key. Sending it again is
+        // both useless and what gets the host firewalled, so refuse here
+        // rather than on their server. Changing the key changes the
+        // fingerprint, which is what lets this clear itself.
+        let fp = credential_fingerprint(&[api_key]);
+        if self.db.credentials_rejected(CTY_SCOPE, &fp) {
+            return Err(
+                "ClubLog rejected this API key (HTTP 403). Set a different key in \
+                        Settings › Reference data — it will not be retried until you do."
+                    .into(),
+            );
+        }
+
+        let xml = match clublog::download_cty(&self.endpoints, api_key) {
+            Ok(xml) => xml,
+            Err(e) => {
+                if e.is_forbidden() {
+                    let _ = self.db.set_credentials_rejected(CTY_SCOPE, &fp);
+                }
+                return Err(e.to_string());
+            }
+        };
+        let _ = self.db.clear_credentials_rejected(CTY_SCOPE);
         let data = cty::parse(&xml).ok_or("cty.xml parse failed")?;
         let count = data.entities.len();
         if let Some(dir) = self.cty_path.parent() {
@@ -292,12 +355,36 @@ impl UserService {
         if cfg.callsign.is_empty() || cfg.email.is_empty() || cfg.app_password.is_empty() {
             return Err("need callsign, email and app password".into());
         }
-        let adif = clublog::download_adif(
+        // Same 403 latch as cty.xml, per account: a wrong app password must
+        // not become a request every refresh interval for ever. ClubLog
+        // firewall the source IP for repeated bad credentials, and that would
+        // punish every other account on this server too.
+        let scope = user_scope(user_id);
+        let fp = credential_fingerprint(&[&cfg.callsign, &cfg.email, &cfg.app_password]);
+        if self.db.credentials_rejected(&scope, &fp) {
+            return Err(
+                "ClubLog rejected these credentials (HTTP 403). Check the email and \
+                        app password under My station › ClubLog account — they will not be \
+                        retried until one of them changes."
+                    .into(),
+            );
+        }
+
+        let adif = match clublog::download_adif(
             &self.endpoints,
             &cfg.callsign,
             &cfg.email,
             &cfg.app_password,
-        )?;
+        ) {
+            Ok(adif) => adif,
+            Err(e) => {
+                if e.is_forbidden() {
+                    let _ = self.db.set_credentials_rejected(&scope, &fp);
+                }
+                return Err(e.to_string());
+            }
+        };
+        let _ = self.db.clear_credentials_rejected(&scope);
         let content = match String::from_utf8(adif) {
             Ok(s) => s,
             Err(e) => e.into_bytes().iter().map(|&b| b as char).collect(), // Latin-1 fallback
@@ -308,8 +395,7 @@ impl UserService {
             // The key is an admin/server setting now, so a plain user cannot
             // fix this themselves — say who can.
             return Err(
-                "no cty.xml loaded — an admin must set the ClubLog API key in System and refresh"
-                    .into(),
+                "no cty.xml loaded — an admin must refresh it in Settings › Reference data".into(),
             );
         }
         let (mut matrix, qso_count, uncredited) =
@@ -1161,5 +1247,175 @@ mod alert_message_tests {
         );
         assert!(html.contains("Spotter: W3LPL"), "got {html}");
         assert!(html.contains("Node: W3LPL"), "got {html}");
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::{Read, Write};
+    use std::sync::atomic::{AtomicUsize, Ordering};
+
+    /// A ClubLog that always says 403, counting how many times it is asked.
+    /// The count is the whole point: the test is not "does a 403 produce an
+    /// error" but "does the SECOND attempt reach the network at all".
+    fn spawn_403_server(hits: Arc<AtomicUsize>) -> u16 {
+        let listener = std::net::TcpListener::bind(("127.0.0.1", 0)).unwrap();
+        let port = listener.local_addr().unwrap().port();
+        std::thread::spawn(move || {
+            for stream in listener.incoming() {
+                let Ok(mut stream) = stream else { return };
+                hits.fetch_add(1, Ordering::SeqCst);
+                // Drain the whole request — head AND the declared body —
+                // before answering. Replying to a POST while the client is
+                // still writing gets the response thrown away as a broken
+                // pipe, so the test would see a network error instead of the
+                // 403 it is here to check. That is a race, which means it
+                // fails only sometimes: worse than not testing at all.
+                let mut raw = Vec::new();
+                let mut buf = [0u8; 2048];
+                while let Ok(n) = stream.read(&mut buf) {
+                    if n == 0 {
+                        break;
+                    }
+                    raw.extend_from_slice(&buf[..n]);
+                    let Some(head_end) = raw.windows(4).position(|w| w == b"\r\n\r\n") else {
+                        continue;
+                    };
+                    let head = String::from_utf8_lossy(&raw[..head_end]).to_lowercase();
+                    let want = head
+                        .lines()
+                        .find_map(|l| {
+                            l.strip_prefix("content-length:")?
+                                .trim()
+                                .parse::<usize>()
+                                .ok()
+                        })
+                        .unwrap_or(0);
+                    if raw.len() >= head_end + 4 + want {
+                        break;
+                    }
+                }
+                let _ = stream.write_all(
+                    b"HTTP/1.1 403 Forbidden\r\nContent-Length: 9\r\nConnection: close\r\n\r\nforbidden",
+                );
+            }
+        });
+        port
+    }
+
+    fn service(port: u16) -> (UserService, std::path::PathBuf, std::path::PathBuf) {
+        static N: AtomicUsize = AtomicUsize::new(0);
+        let n = N.fetch_add(1, Ordering::SeqCst);
+        let dir = std::env::temp_dir().join(format!("dxca-403-{}-{n}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let db_path = dir.join("dxca.db");
+        let _ = std::fs::remove_file(&db_path);
+        let db = Arc::new(Db::open(&db_path).unwrap());
+        let endpoints = Endpoints::single_base(&format!("http://127.0.0.1:{port}"));
+        let svc = UserService::new(db, dir.to_str().unwrap(), Telegram::default(), endpoints);
+        (svc, dir, db_path)
+    }
+
+    /// ClubLog ask that a 403 stop further requests immediately — they
+    /// firewall hosts that keep sending rejected credentials, which would
+    /// break every ClubLog feature for every account on the server, not just
+    /// the one that was wrong. The automatic jobs run on timers, so a latch
+    /// that does not hold means one bad key becomes a request every interval
+    /// for ever.
+    #[test]
+    fn a_403_stops_the_key_being_sent_again_until_it_changes() {
+        let hits = Arc::new(AtomicUsize::new(0));
+        let port = spawn_403_server(hits.clone());
+        let (svc, dir, _) = service(port);
+
+        let key = "0123456789abcdef0123456789abcdef01234567";
+        let first = svc.refresh_cty(key).unwrap_err();
+        assert!(
+            first.contains("403"),
+            "the first attempt should report the 403: {first}"
+        );
+        assert_eq!(hits.load(Ordering::SeqCst), 1, "one request so far");
+
+        let second = svc.refresh_cty(key).unwrap_err();
+        assert_eq!(
+            hits.load(Ordering::SeqCst),
+            1,
+            "the same key must NOT be sent again after a 403"
+        );
+        assert!(
+            second.contains("Settings"),
+            "the refusal should say how to fix it, not just repeat the error: {second}"
+        );
+        assert!(svc.cty_key_rejected(key), "the latch should read as set");
+
+        // A different key is a different credential: the latch is a
+        // fingerprint, not a flag, so it lets the new one through with no
+        // reset step for the admin to discover.
+        let other = "fedcba9876543210fedcba9876543210fedcba98";
+        assert!(
+            !svc.cty_key_rejected(other),
+            "a key that was never tried must not read as rejected"
+        );
+        let _ = svc.refresh_cty(other);
+        assert_eq!(
+            hits.load(Ordering::SeqCst),
+            2,
+            "a changed key must be tried"
+        );
+        assert!(
+            svc.cty_key_rejected(other),
+            "and the new key latches on its own 403"
+        );
+
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    /// The same latch per account, over the log credentials rather than the
+    /// server key. One operator's wrong app password must not get the whole
+    /// host firewalled.
+    #[test]
+    fn a_403_on_a_users_log_stops_that_account_retrying() {
+        let hits = Arc::new(AtomicUsize::new(0));
+        let port = spawn_403_server(hits.clone());
+        let (svc, dir, _) = service(port);
+
+        let user_id = svc
+            .db
+            .create_user("VU2CPL", "Manoj", "hash", "admin")
+            .expect("create user");
+        let mut cfg = svc.db.clublog_config(user_id).unwrap();
+        cfg.callsign = "VU2CPL".into();
+        cfg.email = "someone@example.com".into();
+        cfg.app_password = "wrong".into();
+        svc.db.set_clublog_config(user_id, &cfg).unwrap();
+
+        let first = svc.refresh_user(user_id).unwrap_err();
+        assert!(
+            first.contains("403"),
+            "first attempt reports the 403: {first}"
+        );
+        assert_eq!(hits.load(Ordering::SeqCst), 1);
+
+        let second = svc.refresh_user(user_id).unwrap_err();
+        assert_eq!(
+            hits.load(Ordering::SeqCst),
+            1,
+            "rejected credentials must not be sent again"
+        );
+        assert!(
+            second.contains("app password"),
+            "the refusal should point at what to change: {second}"
+        );
+        assert!(svc.user_credentials_rejected(user_id));
+
+        // Fixing the password releases the latch on its own.
+        cfg.app_password = "corrected".into();
+        svc.db.set_clublog_config(user_id, &cfg).unwrap();
+        assert!(!svc.user_credentials_rejected(user_id));
+        let _ = svc.refresh_user(user_id);
+        assert_eq!(hits.load(Ordering::SeqCst), 2, "the new password is tried");
+
+        let _ = std::fs::remove_dir_all(dir);
     }
 }

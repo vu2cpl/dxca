@@ -721,6 +721,13 @@ in so it does not show up in `strings`. That last part is not encryption and
 is not meant to be: anyone with the binary can recover it, which is why the
 answer to a leak is to rotate the key, not to hide it better.
 
+If ClubLog ever answers **403** for the key in use, dxca stops sending it —
+automatic cty refreshes go quiet and Reference data shows "API key rejected".
+That is deliberate: ClubLog ask that a rejected credential not be retried, and
+they firewall hosts that keep trying, which would cut off every account on the
+server. Enter a different key and refreshes resume on their own; there is no
+reset to press. The same latch applies per account to the ClubLog log login.
+
 [Request a key](https://clublog.org/requestapikey.php) if you want one of your
 own. ClubLog issue them per *application*, so one key covers a whole server —
 it is not a per-operator credential, and it is not what downloads anybody's

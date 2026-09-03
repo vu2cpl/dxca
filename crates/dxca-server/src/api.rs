@@ -1079,6 +1079,12 @@ async fn get_global(State(app): State<AppState>, headers: HeaderMap) -> Response
         // Whether this binary ships a key of its own, so the UI can say the
         // field is optional without ever being told what the key is.
         "clublog_key_built_in": crate::builtin::has_builtin_clublog_key(),
+        // ClubLog answered 403 for the key now in effect, so automatic cty
+        // refreshes have stopped. Without this the UI would show a cty.xml
+        // that quietly stopped updating and no reason anywhere.
+        "clublog_key_rejected": app.users.cty_key_rejected(
+            &crate::builtin::effective_clublog_api_key(&app.users.db),
+        ),
         "cty_last_refresh_unix": app.users.db.meta_unix(crate::refresh::CTY_OK_KEY),
         // When the shared LoTW list was last actually downloaded — 0 = never
         // recorded, which is what a list seeded from a file cache looks like.
