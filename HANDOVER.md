@@ -584,8 +584,18 @@ cutover**; the 1.x macOS app is the retained fallback (maintenance mode).
 
 ## Session 2026-09-03 — the ClubLog API key ships in the binary
 
-**Released as v2.21.0.** Not yet on the five hosts — the deploy is its own
-step (`--no-seed` for adersh, vu2wj and vu2oy).
+**Released as v2.21.0, and on noderedpi4 since 2026-09-03 23:51 IST**
+(`deploy/pi-deploy.sh vu2cpl@192.168.1.169`, seeded as the table prescribes;
+`data/dxca.db` copied to `dxca.db.pre-v2.21.0` first). All nine cluster nodes
+came back **Live** and proven within the minute, spots flowing again
+immediately, and every reference dataset survived untouched — cty 402
+entities, 235,015 LoTW users, 1,178 IOTA groups, 816,973 FCC calls, the one
+account, and `config/dxca.toml` not rewritten (mtime still 2026-09-01, which
+is `install.sh`'s "seed only when absent" doing its job). The deployed ARM
+binary carries the obfuscated key and neither the plaintext nor the readable
+pad. **The other four hosts are still on v2.20.4** — the Windows box
+(`win-deploy.sh`) and then adersh / vu2wj / vu2oy with `--no-seed`, each on
+Manoj's prompt and each pinged first.
 
 A fresh dxca had a cold start that nothing in the UI admitted: alerts and all
 DXCC resolution need cty.xml, cty.xml needs a ClubLog API key, and a
