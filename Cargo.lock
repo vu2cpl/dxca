@@ -241,7 +241,7 @@ dependencies = [
 
 [[package]]
 name = "dxca-connect"
-version = "2.20.4"
+version = "2.21.0"
 dependencies = [
  "dxca-core",
  "flate2",
@@ -255,7 +255,7 @@ dependencies = [
 
 [[package]]
 name = "dxca-core"
-version = "2.20.4"
+version = "2.21.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -264,7 +264,7 @@ dependencies = [
 
 [[package]]
 name = "dxca-server"
-version = "2.20.4"
+version = "2.21.0"
 dependencies = [
  "argon2",
  "axum",

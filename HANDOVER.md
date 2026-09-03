@@ -2,6 +2,14 @@
 *For continuation in a new Claude session*
 
 **Created:** 2026-08-26 · **Last updated:** 2026-09-03 · **Status:**
+**v2.21.0 — a fresh install needs no ClubLog API key, and a 403 is no longer
+retried.** The key ClubLog issue per *application* now ships inside the
+binary (injected at build time, never committed — they delete keys found in
+a Git repository, and this repo is public), so a `--no-seed` install
+resolves DXCC from its first download instead of classifying nothing until
+an admin obtains a key by hand. And a rejected credential now latches on a
+fingerprint rather than being retried every refresh interval, which is what
+ClubLog ask for and what keeps the host off their firewall. Previously:
 **v2.20.4 — the Zone and Marathon rows in Alerts were checkboxes wired to
 nothing** (Manoj: *"if dx marathon is not selected in alerts, still
 notifications were coming"*, *"have to disable in awards to stop the
@@ -576,7 +584,8 @@ cutover**; the 1.x macOS app is the retained fallback (maintenance mode).
 
 ## Session 2026-09-03 — the ClubLog API key ships in the binary
 
-**On `main`, unreleased — still v2.20.4, no tag, nothing deployed.**
+**Released as v2.21.0.** Not yet on the five hosts — the deploy is its own
+step (`--no-seed` for adersh, vu2wj and vu2oy).
 
 A fresh dxca had a cold start that nothing in the UI admitted: alerts and all
 DXCC resolution need cty.xml, cty.xml needs a ClubLog API key, and a
