@@ -593,9 +593,28 @@ entities, 235,015 LoTW users, 1,178 IOTA groups, 816,973 FCC calls, the one
 account, and `config/dxca.toml` not rewritten (mtime still 2026-09-01, which
 is `install.sh`'s "seed only when absent" doing its job). The deployed ARM
 binary carries the obfuscated key and neither the plaintext nor the readable
-pad. **The other four hosts are still on v2.20.4** — the Windows box
-(`win-deploy.sh`) and then adersh / vu2wj / vu2oy with `--no-seed`, each on
-Manoj's prompt and each pinged first.
+pad. **Then the Windows box and VU2OY the same evening.** `192.168.1.170` took
+`deploy/win-deploy.sh` (update only — `config\` and `data\` untouched, old
+binary kept at `C:\DXCA\dxca.exe.bak`), both its nodes back Live.
+`vu2oy@192.168.220.51` took `deploy/pi-deploy.sh --no-seed` after its
+`data/dxca.db` was copied to `dxca.db.pre-v2.21.0` (md5 verified equal
+first); the staged list was binary + service unit + installer only, its own
+config still reads 2026-08-29, and both its nodes came back Live.
+
+**The Windows box was the case this release was written for.** Before the
+deploy it reported `cty_loaded: false`, **0 entities** — 17,655 spots ingested
+from two nodes while resolving no DXCC whatsoever, because nobody had ever
+obtained a ClubLog key for it. Every alert and highlight on that machine had
+been silently dead. It now has a key without anyone doing anything; the
+download lands on the first refresh tick, ~15 minutes after the restart
+(`spawn` skips the first tick deliberately).
+
+**Still on v2.20.4: `adersh@192.168.1.151` and `vu2wj@192.168.1.201`** — both
+refused SSH with a connect timeout on 2026-09-03, so they are powered down or
+their tunnels are not up. Not a service fault, and nothing was attempted
+against them. Note also that **`192.168.1.170` does not answer ping** (Windows
+Firewall blocks ICMP by default), so the "ping each before deploying" rule
+needs an SSH probe for that host rather than ping.
 
 A fresh dxca had a cold start that nothing in the UI admitted: alerts and all
 DXCC resolution need cty.xml, cty.xml needs a ClubLog API key, and a
