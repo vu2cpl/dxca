@@ -609,12 +609,21 @@ been silently dead. It now has a key without anyone doing anything; the
 download lands on the first refresh tick, ~15 minutes after the restart
 (`spawn` skips the first tick deliberately).
 
-**Still on v2.20.4: `adersh@192.168.1.151` and `vu2wj@192.168.1.201`** — both
-refused SSH with a connect timeout on 2026-09-03, so they are powered down or
-their tunnels are not up. Not a service fault, and nothing was attempted
-against them. Note also that **`192.168.1.170` does not answer ping** (Windows
+**adersh and vu2wj followed just after midnight on 2026-09-04**, once both
+came up — they had refused SSH with a connect timeout an hour earlier, which
+is what "not always powered up" looks like from here. Both took
+`--no-seed` after a `dxca.db.pre-v2.21.0` copy (md5 verified equal first),
+both staged binary + service unit + installer only, and both kept their own
+`config/dxca.toml` (adersh 2026-09-01, vu2wj 2026-09-02). Nodes back Live on
+each: adersh 4/4, vu2wj 2/2.
+
+**The whole fleet is on v2.21.0** — 169 (9/9 nodes Live), 151 (4/4), 201
+(2/2), 220.51 (2/2), and the Windows box (2/2).
+
+Note for the runbook: **`192.168.1.170` does not answer ping** (Windows
 Firewall blocks ICMP by default), so the "ping each before deploying" rule
-needs an SSH probe for that host rather than ping.
+needs an SSH probe for that host rather than ping. The three Pis do answer
+ping, and ping told the truth about all three.
 
 A fresh dxca had a cold start that nothing in the UI admitted: alerts and all
 DXCC resolution need cty.xml, cty.xml needs a ClubLog API key, and a
