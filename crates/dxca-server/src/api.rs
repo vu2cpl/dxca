@@ -1072,8 +1072,13 @@ async fn get_global(State(app): State<AppState>, headers: HeaderMap) -> Response
             "fcc_refresh_days": cfg.fcc_refresh_days,
         },
         // Server-wide, admin-only, stored in the 0600 database rather than
-        // the 0644 config file.
+        // the 0644 config file. This is the ADMIN-SET key only: the built-in
+        // one is deliberately never sent to a client, or the UI would become a
+        // way to read a key out of any server you happen to administer.
         "clublog_api_key": app.users.db.clublog_api_key(),
+        // Whether this binary ships a key of its own, so the UI can say the
+        // field is optional without ever being told what the key is.
+        "clublog_key_built_in": crate::builtin::has_builtin_clublog_key(),
         "cty_last_refresh_unix": app.users.db.meta_unix(crate::refresh::CTY_OK_KEY),
         // When the shared LoTW list was last actually downloaded — 0 = never
         // recorded, which is what a list seeded from a file cache looks like.
@@ -1215,7 +1220,7 @@ async fn cty_refresh(State(app): State<AppState>, headers: HeaderMap) -> Respons
         return resp;
     }
     let service = app.users.clone();
-    let key = app.users.db.clublog_api_key();
+    let key = crate::builtin::effective_clublog_api_key(&app.users.db);
     let result = tokio::task::spawn_blocking(move || service.refresh_cty(&key)).await;
     match result {
         Ok(Ok(entities)) => Json(serde_json::json!({ "cty_entities": entities })).into_response(),

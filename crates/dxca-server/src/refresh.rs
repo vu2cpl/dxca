@@ -168,8 +168,9 @@ fn run_fcc_if_due(users: &UserService, days: u64) -> bool {
 
 /// True when a cty.xml download was attempted this tick.
 fn run_cty_if_due(users: &UserService, days: u64) -> bool {
-    let key = users.db.clublog_api_key();
+    let key = crate::builtin::effective_clublog_api_key(&users.db);
     if key.is_empty() {
+        // No admin key and no built-in one (a build made without a key).
         // Nothing to do, and nothing to complain about every 15 minutes —
         // a server with no key simply keeps the cty.xml it was given.
         return false;

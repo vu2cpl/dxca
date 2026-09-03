@@ -4,6 +4,7 @@
 pub mod api;
 pub mod assets;
 pub mod auth;
+pub mod builtin;
 pub mod cmdrouter;
 pub mod commands;
 pub mod config;

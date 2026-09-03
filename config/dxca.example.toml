@@ -38,8 +38,10 @@ spot_ring_capacity = 5000
 
 # How often to re-download ClubLog's cty.xml (the DXCC prefix database), in
 # days; 0 = manual only. The API key it needs is NOT here — this file is
-# installed world-readable (0644) while data/dxca.db is 0600, so the key is a
-# database setting, managed by an admin in the web UI's System tab.
+# installed world-readable (0644) while data/dxca.db is 0600. A released dxca
+# has a key baked into the binary, so nothing need be configured at all; an
+# admin who would rather use their own sets it in the web UI (Settings >
+# Reference data > Advanced), which stores it in the database.
 cty_refresh_days = 7
 
 # How often to re-download the LoTW users list, in days; 0 = manual only.

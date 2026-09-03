@@ -18,6 +18,11 @@ config/dxca.toml
 
 # Secrets / env
 .env
+# The ClubLog developer API key, read by crates/dxca-server/build.rs and
+# baked into the binary. ClubLog delete keys they find published in a Git
+# repository, and this repo is public — so the key lives here, untracked,
+# or in DXCA_CLUBLOG_API_KEY. Never commit it.
+.clublog-api-key
 
 # M4 runtime state (SQLite + cty cache)
 /data/

@@ -261,7 +261,11 @@ impl UserService {
     /// user re-downloaded the same ~10 MB daily.
     pub fn refresh_cty(&self, api_key: &str) -> Result<usize, String> {
         if api_key.is_empty() {
-            return Err("no ClubLog API key configured (System → ClubLog API key)".into());
+            return Err(
+                "no ClubLog API key: this build has no built-in one, so an admin must \
+                 set a key in Settings › Reference data"
+                    .into(),
+            );
         }
         let xml = clublog::download_cty(&self.endpoints, api_key)?;
         let data = cty::parse(&xml).ok_or("cty.xml parse failed")?;

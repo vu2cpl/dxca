@@ -501,16 +501,20 @@ The first page is a setup card, because no account exists yet and there are
 no default credentials, ever. Create the admin account — that callsign and
 password are yours alone; nothing is pre-seeded.
 
+You do **not** need a ClubLog API key. A released dxca carries one, so
+cty.xml — the DXCC prefix database every spot is resolved against — downloads
+on its own. (The field is still there, under **Settings › Server › Reference
+data → Advanced**, for an admin who would rather spend a key of their own, or
+if you built from source without one. See
+[Building without a ClubLog key](#building-without-a-clublog-key).)
+
 Then, in order of what actually matters:
 
-1. **Settings › Server › Reference data → ClubLog API key.** Without it, cty.xml never downloads and
-   no spot can be resolved to a DXCC entity. Get a key from
-   [clublog.org](https://clublog.org).
-2. **Settings › Server › Cluster nodes.** Add the DX-cluster node(s) you want
+1. **Settings › Server › Cluster nodes.** Add the DX-cluster node(s) you want
    ingested, with your callsign as the login.
-3. **Settings › My station › ClubLog account.** Your ClubLog credentials, so your own log loads and
+2. **Settings › My station › ClubLog account.** Your ClubLog credentials, so your own log loads and
    New-DXCC highlighting means something for your station.
-4. **Point your decoders at it.** WSJT-X/JTDX/MSHV UDP to ports 2333 (MSHV),
+3. **Point your decoders at it.** WSJT-X/JTDX/MSHV UDP to ports 2333 (MSHV),
    2334 (JTDX), 2335 (WSJT-X). Point your logger's telnet cluster at port
    **7575** on this machine.
 
@@ -687,6 +691,41 @@ cargo run -p dxca-server         # http://localhost:7580
 A [Justfile](Justfile) wraps the common flows (`just gate`, `just run`,
 `just dist`) but is never required.
 
+### Building without a ClubLog key
+
+Released builds carry a ClubLog developer API key so a fresh install can
+download cty.xml with nothing to register. It is **not in this repository**
+and never will be: ClubLog's
+[API Keys](https://clublog.freshdesk.com/support/solutions/articles/54910-api-keys)
+article says keys found published on the web or in a Git repository are
+deleted without notice, and this repo is public.
+
+So a build from source has no key unless you supply one, and behaves the way
+dxca always did — an admin sets a key in **Settings › Server › Reference data
+→ Advanced** and cty.xml downloads from there. Everything else works
+regardless; only the country file needs the key.
+
+To bake your own in, put it where `crates/dxca-server/build.rs` looks:
+
+```sh
+echo <your-40-hex-key> > .clublog-api-key   # git-ignored
+# or:  export DXCA_CLUBLOG_API_KEY=<your-40-hex-key>
+cargo build --release -p dxca-server
+```
+
+Every release path picks it up with no extra step — `just dist`, `just win`,
+`deploy/pi-deploy.sh`, `install.sh` — because they all run cargo in the same
+shell. The build fails loudly on a key that is not 40 hex characters rather
+than shipping a binary that 403s in the field, and the key is XOR'd on the way
+in so it does not show up in `strings`. That last part is not encryption and
+is not meant to be: anyone with the binary can recover it, which is why the
+answer to a leak is to rotate the key, not to hide it better.
+
+[Request a key](https://clublog.org/requestapikey.php) if you want one of your
+own. ClubLog issue them per *application*, so one key covers a whole server —
+it is not a per-operator credential, and it is not what downloads anybody's
+log (that is each user's own email and app password).
+
 ### Install as a service
 
 Step-by-step instructions are in [How to install](#how-to-install); this is
@@ -701,8 +740,8 @@ confirms, and never fails silently:
 - **Pi/Linux**: installs binary + config + data seeds to `/opt/dxca` and a
   systemd service (`systemctl status dxca`) running as the invoking user. A
   fresh install self-bootstraps: the first-run web card creates the admin
-  account, and cty.xml / the LoTW list download on demand once a ClubLog API
-  key is entered — no seed files required.
+  account, and cty.xml / the LoTW list download on demand — no seed files and,
+  with a released build, no ClubLog API key to obtain first.
 
 Three things it guarantees, each of which was once a bug:
 

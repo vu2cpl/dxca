@@ -61,7 +61,7 @@ window of what it owns.
 
 | | owner | why |
 |---|---|---|
-| cty.xml, LoTW list, ClubLog API key, blacklist | **admin** | one copy, every account classifies against it |
+| cty.xml, LoTW list, ClubLog API key, blacklist | **admin** | one copy, every account classifies against it (the API key is baked into a released binary, so an admin need not supply one) |
 | user accounts | **admin** | account management |
 | **passthrough destinations** | **admin** | see [Passthrough](#passthrough-stays-server-wide) |
 | UDP sources | **user** | that station's decoders |

@@ -1,7 +1,7 @@
 # DXCA — Project Handover
 *For continuation in a new Claude session*
 
-**Created:** 2026-08-26 · **Last updated:** 2026-09-01 · **Status:**
+**Created:** 2026-08-26 · **Last updated:** 2026-09-03 · **Status:**
 **v2.20.4 — the Zone and Marathon rows in Alerts were checkboxes wired to
 nothing** (Manoj: *"if dx marathon is not selected in alerts, still
 notifications were coming"*, *"have to disable in awards to stop the
@@ -574,6 +574,75 @@ and the web GUI's design system from the same repo's
 **Production runs on noderedpi4 (192.168.1.169) since the 2026-08-27
 cutover**; the 1.x macOS app is the retained fallback (maintenance mode).
 
+## Session 2026-09-03 — the ClubLog API key ships in the binary
+
+**On `main`, unreleased — still v2.20.4, no tag, nothing deployed.**
+
+A fresh dxca had a cold start that nothing in the UI admitted: alerts and all
+DXCC resolution need cty.xml, cty.xml needs a ClubLog API key, and a
+`--no-seed` install arrives with **no cty.xml at all** (the file is git-ignored
+runtime state; "seeding" copies *this Mac's* data dir, which is exactly what
+`--no-seed` exists to prevent). `refresh_cty` hard-errored, `run_cty_if_due`
+returned early on the empty key and never self-healed, and `resolve` returned
+`None` for everything. So a third-party Pi classified nothing until its admin
+went to clublog.org/requestapikey.php and waited for a key to be issued by
+hand — for a value that is **the same on every server**, because ClubLog issue
+API keys per *application*, not per operator.
+
+The key is now baked into the binary at build time and **is never in this
+repository**. ClubLog's
+[API Keys](https://clublog.freshdesk.com/support/solutions/articles/54910-api-keys)
+article says keys found published on the web or **in a Git repository** are
+deleted without notice, with the products using them liable to be blocked, and
+this repo is public. Obfuscating a committed key past their scanners would be
+the wrong answer to that, so the key never reaches a tracked file at all:
+
+- `crates/dxca-server/build.rs` reads `DXCA_CLUBLOG_API_KEY` or the
+  git-ignored `.clublog-api-key`, XORs it against a high-bit pad, and writes
+  the bytes into **`OUT_DIR`** — under `target/`, never the source tree. So
+  there is nothing to stage, clear or forget, and `just dist` / `just win` /
+  `deploy/*.sh` / `install.sh` all pick it up with no change, because they run
+  cargo in the same shell. A wrong-length key **fails the build** rather than
+  shipping a binary that 403s in the field.
+- `crates/dxca-server/src/builtin.rs` de-obfuscates on first use and offers
+  `effective_clublog_api_key(&db)` — **an admin-set key still wins**, so an
+  operator who prefers their own quota, or a fleet running after ClubLog ever
+  revoked the shipped key, needs no new build. Unit-tested, including that
+  whitespace is a clear rather than a key.
+- The three read sites (`refresh.rs`, `api.rs::cty_refresh`, and the config
+  GET) go through it. `GET /api/config/global` still returns **only the
+  admin-set key** plus a new boolean `clublog_key_built_in` — the built-in key
+  is deliberately never sent to a client, or the UI would become a way to read
+  a key out of any server you administer.
+- Web UI: the key field moved into a collapsed **Advanced** disclosure on
+  Settings › Server › Reference data, open by default when no key is built in,
+  with a summary tag ("own API key set" / orange "API key needed") so a
+  collapsed row still says what is inside.
+
+*The pad is high-bit bytes, not a phrase.* The first cut used
+`b"VU2CPL-DXCA-cty-obfuscation-pad!"` and `strings` printed it verbatim in the
+binary — a signpost standing next to the very bytes it decodes. It is still
+only obfuscation: it keeps the key out of `strings`, nothing more, and the
+answer to a leak is rotation.
+
+**Verified end to end**, not just compiled: a throwaway server on 127.0.0.1:7593
+with its own data dir and no admin key downloaded cty.xml — **402 entities** —
+using the built-in key alone, `/api/config/global` reported
+`clublog_key_built_in: true` with `clublog_api_key: ""`, the disclosure
+collapsed/expanded correctly in the browser with the tag showing, and `strings`
+on the release binary found neither the key nor the pad. Full gate green.
+
+**The 1.x macOS app got the same treatment the same day** (its commit is local
+and unpushed there) — with a `trap`-based inject/clear in `notarize.sh`, since
+SwiftPM has no build-script step to write into a build directory.
+
+**Still to do:** ClubLog ask that a **403 disables further requests
+immediately** — they firewall repeat offenders by IP. Neither `refresh_cty`
+nor the LoTW/IOTA/FCC jobs treat 403 differently from any other non-200. None
+of them retries today so nothing misbehaves, but that is luck, not design.
+
+---
+
 ## Session 2026-08-29 (afternoon) — the shell rework
 
 Manoj asked for the UI cleanup the last session had parked, then drove it from
@@ -755,6 +824,13 @@ which is now the rule for any host that is not noderedpi4.
   need the full proxy set: prefix `PATH="/opt/homebrew/opt/rustup/bin:$PATH"`
   (or symlink the missing proxies like the existing two). Plain builds work
   either way.
+- **The ClubLog API key must never become a committed constant.** It is baked
+  in by `build.rs` from `DXCA_CLUBLOG_API_KEY` / the git-ignored
+  `.clublog-api-key`, into `OUT_DIR` only. ClubLog delete keys they find in a
+  Git repository and this repo is public, so folding it back into a source
+  literal — obfuscated or not — gets the key revoked for every install in the
+  fleet. A build with no key available is *fine*: it behaves as dxca did
+  before, with the admin setting one in the web UI.
 - **pnpm blocks dependency install scripts**: `web-ui/pnpm-workspace.yaml`
   allow-lists esbuild's postinstall (same pattern as Meridian). Without it,
   `pnpm install` errors with ERR_PNPM_IGNORED_BUILDS.

@@ -104,22 +104,52 @@
   <div class="card">
     <h2>Reference data — shared by all users</h2>
 
-    <div class="settings-form">
-      <span class="label">
-        ClubLog API key
-        <HelpTip label="ClubLog API key">
-          Fetches <b>cty.xml</b>, the DXCC prefix database every account is
-          classified against — so it belongs to the server, not to an operator.
-          It is <b>not</b> used to download anyone's log; that uses each user's
-          own email and app password under <b>My station › ClubLog account</b>.
-        </HelpTip>
-      </span>
-      <input
-        type="password"
-        bind:value={server.cfg.clublog_api_key}
-        placeholder="from clublog.org — one key for the whole server"
-      />
-    </div>
+    <!--
+      The API key sits behind a disclosure because a released dxca ships with
+      one (baked in at build time), which makes this field a leftover for
+      almost every server — and a visible empty password box mostly invites
+      someone to paste the wrong secret into it. It stays reachable for the
+      three cases that still need it: a build made without a key, a shipped key
+      ClubLog ever revokes, and admins who would rather spend their own quota.
+      Open by default when there is no built-in key, because then it is the
+      only way to get a country file at all.
+    -->
+    <details class="advanced" open={!server.cfg.clublog_key_built_in}>
+      <summary>
+        Advanced
+        {#if server.cfg.clublog_api_key}
+          <span class="tag">own API key set</span>
+        {:else if !server.cfg.clublog_key_built_in}
+          <span class="tag warn">API key needed</span>
+        {/if}
+      </summary>
+
+      <div class="settings-form">
+        <span class="label">
+          ClubLog API key
+          <HelpTip label="ClubLog API key">
+            Fetches <b>cty.xml</b>, the DXCC prefix database every account is
+            classified against — so it belongs to the server, not to an operator.
+            It is <b>not</b> used to download anyone's log; that uses each user's
+            own email and app password under <b>My station › ClubLog account</b>.
+            {#if server.cfg.clublog_key_built_in}
+              This build ships with a key, so you can leave this empty; anything
+              you enter here is used instead of it.
+            {:else}
+              This build has no key of its own, so cty.xml cannot download until
+              you enter one.
+            {/if}
+          </HelpTip>
+        </span>
+        <input
+          type="password"
+          bind:value={server.cfg.clublog_api_key}
+          placeholder={server.cfg.clublog_key_built_in
+            ? 'optional — this build has a key of its own'
+            : 'required — from clublog.org, one key for the whole server'}
+        />
+      </div>
+    </details>
 
     <!-- Two shared datasets, three columns: what, when, act. -->
     <table class="refdata">
@@ -293,5 +323,27 @@
 
   p {
     margin: 0.75rem 0 0;
+  }
+
+  /* The API-key disclosure. Deliberately quiet: on a server with a built-in
+     key this is a row almost nobody should open. */
+  .advanced > summary {
+    cursor: pointer;
+    font-size: var(--fs-hint);
+    color: var(--muted);
+    user-select: none;
+  }
+
+  .advanced[open] > summary {
+    margin-bottom: 0.5rem;
+  }
+
+  .advanced .tag {
+    margin-left: 0.4rem;
+    font-size: var(--fs-hint);
+  }
+
+  .advanced .tag.warn {
+    color: var(--warn);
   }
 </style>
