@@ -45,7 +45,7 @@
 - [The installs (2026-08-28; VU2OY added 2026-08-30; production moved to .109 2026-09-22)](#the-installs-2026-08-28-vu2oy-added-2026-08-30-production-moved-to-109-2026-09-22)
 - [Release convention (2026-08-28, standing)](#release-convention-2026-08-28-standing)
 - [Open items → next session](#open-items--next-session)
-  - [OPEN: the 1.x Swift app spots the called station too (2026-10-20)](#open-the-1x-swift-app-spots-the-called-station-too-2026-10-20)
+  - [DONE: the 1.x Swift app spots the called station too (2026-10-20)](#done-the-1x-swift-app-spots-the-called-station-too-2026-10-20)
   - [DONE: v2.22.2 on the three remote Pis (2026-10-09)](#done-v2222-on-the-three-remote-pis-2026-10-09)
   - [DONE in v2.22.2: the GitHub release check (2026-10-08)](#done-in-v2222-the-github-release-check-2026-10-08)
   - [DONE: v2.22.3 on the three remote Pis (2026-10-09)](#done-v2223-on-the-three-remote-pis-2026-10-09)
@@ -783,7 +783,19 @@ GitHub release with `dxca-2.23.2-windows-x64.zip`, sha256 `94bb62b5…dbeb`).
 | vu2wj `.201` | Pending: the tunnel came up against the current DDNS answer `59.176.42.68`, but has never completed a handshake (2,812 B sent, 0 received). So the Pi, PiVPN or his router is down. This is not the stale-endpoint fault from v2.23.1. |
 | vu2oy `.51` | Pending: the site is offline. |
 
-**Not fixed:** the 1.x Swift app. See the open item below.
+**Follow-up, same day: v2.23.2 still leaked to unfiltered destinations.**
+`passes = false` keeps the decode off the telnet feed and the *filtered*
+UDP/MQTT destinations. Unfiltered ones take every spot regardless of that
+verdict, so they still received it as an `UNKNOWN` line. The gap turned up
+while porting the fix to the Swift app, whose `handleDecode` has the same
+shape. `process_spot` now returns right after `record` (ring + live event)
+for such a decode, so it reaches no destination at all. The server test now
+carries an unfiltered `cluster` destination: against the v2.23.2 pipeline it
+fails, and with the fix it passes. Released as v2.23.3.
+
+**The 1.x Swift app** got the same fix (both halves) in
+DXClusterAggregator-macOS #2, squash `106e797`. It is on `main` and not
+released.
 
 ## Session 2026-10-10 — WAS uses the spot's grid before the licence address
 
@@ -2891,13 +2903,12 @@ edited in place to carry it.
 
 ## Open items → next session
 
-### OPEN: the 1.x Swift app spots the called station too (2026-10-20)
+### DONE: the 1.x Swift app spots the called station too (2026-10-20)
 
-`SpotMessage.dxCallsign` in the DXClusterAggregator repo has the fallback
-this session removed from the Rust port. `CALL <...> RR73` spots CALL, the
-station being called, at the unnamed sender's offset. Manoj: fix it, or keep
-it as a TODO. The Rust change (return `nil` when slot 1 is `<...>`) and its
-test table port across directly.
+Fixed the same day on Manoj's word (*"fix the swift app too"*):
+DXClusterAggregator-macOS #2, squash `106e797`, on `main` and unreleased.
+`dxCallsign` returns `nil` for a `<...>` sender, and `handleDecode` returns
+before any rebroadcast.
 
 ### DONE: v2.22.2 on the three remote Pis (2026-10-09)
 

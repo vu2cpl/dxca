@@ -370,35 +370,36 @@ fn process_spot(
         return;
     }
 
+    // A decode whose sender is an unresolved hash (`CP6CL <...> RR73`) names
+    // only the station being called, so it has no callsign. It is recorded
+    // and goes nowhere else. A `passes = false` verdict is not enough:
+    // unfiltered UDP and MQTT destinations take every spot regardless, and
+    // v2.23.2 sent them this one as `UNKNOWN`. The verbatim passthrough
+    // already relayed the datagram before it was parsed.
+    if dxca_core::sender_is_unresolved_hash(&spot.message) {
+        record(state, spot, ring_capacity);
+        return;
+    }
+
     // Rebroadcast dedupe: first spot per CALL-BAND-MODE per window reaches
     // the telnet feed + filtered destinations.
-    //
-    // A decode whose sender is an unresolved hash (`CP6CL <...> RR73`) names
-    // only the station being called, so it has no callsign — and the 1.x
-    // "no callsign → broadcast as UNKNOWN" rule below would put a spot of
-    // nobody on every logger's cluster feed. It stays in the ring (the Spots
-    // table shows what was decoded) but is never rebroadcast.
-    let passes = if dxca_core::sender_is_unresolved_hash(&spot.message) {
-        false
-    } else {
-        match spot.duplicate_key() {
-            Some(key) => {
-                // Opportunistic cleanup, like 1.x's 2000-entry sweep.
-                if dedupe.len() > 2000 {
-                    dedupe.retain(|_, t| now - *t < dedupe_window_secs);
-                }
-                match dedupe.get(&key) {
-                    Some(last) if now - last < dedupe_window_secs => false,
-                    _ => {
-                        dedupe.insert(key, now);
-                        true
-                    }
+    let passes = match spot.duplicate_key() {
+        Some(key) => {
+            // Opportunistic cleanup, like 1.x's 2000-entry sweep.
+            if dedupe.len() > 2000 {
+                dedupe.retain(|_, t| now - *t < dedupe_window_secs);
+            }
+            match dedupe.get(&key) {
+                Some(last) if now - last < dedupe_window_secs => false,
+                _ => {
+                    dedupe.insert(key, now);
+                    true
                 }
             }
-            // 1.x parity: no dedupe key (no callsign) → never counts as a
-            // duplicate → still broadcast (as UNKNOWN).
-            None => true,
         }
+        // 1.x parity: no dedupe key (no callsign) → never counts as a
+        // duplicate → still broadcast (as UNKNOWN).
+        None => true,
     };
 
     let line = format::format(&spot);
@@ -437,6 +438,11 @@ fn process_spot(
         passes,
     );
 
+    record(state, spot, ring_capacity);
+}
+
+/// The Spots table's half of the tail: the live event and the ring.
+fn record(state: &PipelineState, spot: Spot, ring_capacity: usize) {
     let _ = state.spot_events.send(spot.clone()); // no subscribers is fine
     let mut ring = state.spots.lock().unwrap();
     ring.push_back(spot);

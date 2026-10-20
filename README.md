@@ -1359,7 +1359,9 @@ alert on it. Now a decode like this has no callsign:
 
 - It still appears in the Spots table.
 - It raises no alert and touches no band matrix.
-- It is never sent on the cluster feed (not even as `UNKNOWN`).
+- It is sent nowhere: not on the cluster feed, and not to any UDP or MQTT
+  destination, unfiltered ones included. In v2.23.2 an unfiltered
+  destination still received it as `UNKNOWN`; fixed in v2.23.3.
 
 The reverse form, `<...> CP6CL RRR`, is CP6CL transmitting, and is spotted as
 before.

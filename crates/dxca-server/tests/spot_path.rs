@@ -174,11 +174,18 @@ async fn a_real_wsjtx_decode_reports_ft8_not_a_tilde() {
 /// `CP6CL <...> RR73` was 7P8GE (hash unresolved) signing off with CP6CL,
 /// yet DXCA spotted CP6CL — at 7P8GE's offset — and alerted on him. The
 /// fix extracts no callsign from it; this pins the other half: with no
-/// callsign the 1.x rule would rebroadcast it as `UNKNOWN`, so it must not
-/// reach the telnet feed at all, while the next real exchange still does.
+/// callsign the 1.x rule would rebroadcast it as `UNKNOWN`, so it must
+/// reach neither the telnet feed nor an UNFILTERED cluster destination
+/// (v2.23.2 still sent those `UNKNOWN`), while the next real exchange
+/// reaches both.
 #[tokio::test]
 async fn an_unresolved_hash_sender_never_reaches_the_cluster_feed() {
     use dxca_core::wsjtx::{Decode, Status, encode_decode, encode_status};
+
+    // An unfiltered cluster-format destination takes every spot, whatever
+    // the filters and dedupe say — the path a `passes = false` missed.
+    let feed = UdpSocket::bind(("127.0.0.1", 0)).await.unwrap();
+    let feed_port = feed.local_addr().unwrap().port();
 
     let source_port = 48_336;
     let cfg = Config {
@@ -188,7 +195,15 @@ async fn an_unresolved_hash_sender_never_reaches_the_cluster_feed() {
             port: source_port,
             enabled: true,
         }],
-        broadcast_destinations: Vec::new(),
+        broadcast_destinations: vec![BroadcastDestination {
+            name: "aggregator".into(),
+            ip: Ipv4Addr::LOCALHOST,
+            port: feed_port,
+            format: "cluster".into(),
+            sources: Vec::new(),
+            unfiltered: true,
+            enabled: true,
+        }],
         ..Config::default()
     };
     let (state, _tx) = pipeline::start(&cfg, None).await.expect("pipeline start");
@@ -233,6 +248,17 @@ async fn an_unresolved_hash_sender_never_reaches_the_cluster_feed() {
     assert!(line.contains("7P8GE"), "line: {line:?}");
     assert!(!line.contains("CP6CL"), "line: {line:?}");
     assert!(!line.contains("UNKNOWN"), "line: {line:?}");
+
+    // Same for the unfiltered destination: its first datagram is the real
+    // spot, so the RR73 sent nothing ahead of it.
+    let mut buf = vec![0u8; 2048];
+    let (n, _) = tokio::time::timeout(std::time::Duration::from_secs(5), feed.recv_from(&mut buf))
+        .await
+        .expect("the unfiltered destination got nothing")
+        .unwrap();
+    let datagram = String::from_utf8_lossy(&buf[..n]);
+    assert!(datagram.contains("7P8GE"), "datagram: {datagram:?}");
+    assert!(!datagram.contains("UNKNOWN"), "datagram: {datagram:?}");
 
     // Both decodes are still in the ring — the Spots table shows what was
     // decoded — but the unresolved one names nobody.
