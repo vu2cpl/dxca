@@ -115,9 +115,10 @@ impl Spot {
     }
 
     /// The spotted (DX) callsign extracted from the FT8/FT4 message text —
-    /// Swift `SpotMessage.dxCallsign` verbatim. Handles "CQ CALL GRID",
-    /// directed "CQ NA CALL GRID", two-station exchanges (prefer the
-    /// transmitting station in slot 1), and `<hashed>` calls.
+    /// Swift `SpotMessage.dxCallsign`, except that an unresolved-hash sender
+    /// spots nobody (see below). Handles "CQ CALL GRID", directed
+    /// "CQ NA CALL GRID", two-station exchanges (prefer the transmitting
+    /// station in slot 1), and `<hashed>` calls.
     pub fn dx_callsign(&self) -> Option<String> {
         let parts: Vec<&str> = self.message.split(' ').filter(|p| !p.is_empty()).collect();
         if parts.len() < 2 {
@@ -131,6 +132,15 @@ impl Spot {
             return looks_like_callsign(parts[1]).then(|| strip_call_decoration(parts[1]));
         }
 
+        // `CALL <...> RR73`: slot 1 is the sender, and it hashed its own
+        // call — the decoder never resolved it. The one full call is the
+        // station being CALLED, which may not be on the air at all; falling
+        // back to it spotted (and alerted on) CP6CL at 7P8GE's offset,
+        // because 7P8GE was finishing a QSO with him. The transmitter has no
+        // name, so there is nobody to spot.
+        if parts[1] == UNRESOLVED_HASH {
+            return None;
+        }
         if looks_like_callsign(parts[1]) {
             return Some(strip_call_decoration(parts[1]));
         }
@@ -325,6 +335,17 @@ pub fn time_from_decode_ms(now_unix: i64, decode_ms: u32) -> i64 {
     midnight + i64::from(decode_ms / 1000)
 }
 
+/// What WSJT-X / JTDX / MSHV print for a hashed callsign they cannot resolve.
+const UNRESOLVED_HASH: &str = "<...>";
+
+/// Is the SENDER of this exchange (slot 1) a hashed call the decoder could
+/// not resolve? Such a decode names only the station being called.
+pub fn sender_is_unresolved_hash(message: &str) -> bool {
+    let mut parts = message.split(' ').filter(|p| !p.is_empty());
+    let first = parts.next();
+    first.is_some_and(|p| !p.eq_ignore_ascii_case("CQ")) && parts.next() == Some(UNRESOLVED_HASH)
+}
+
 /// Strip the `<>` brackets WSJT-X puts around hashed/known callsigns.
 fn strip_call_decoration(s: &str) -> String {
     s.trim_start_matches('<').trim_end_matches('>').to_string()
@@ -410,11 +431,37 @@ mod tests {
             ("<K1JT> VU2CPL R-07", Some("VU2CPL")),
             ("VU2CPL <K1JT> +03", Some("K1JT")), // hashed call unwraps
             ("K1JT LL85", Some("K1JT")),         // slot 1 is a grid → fall back to slot 0
+            ("<...> W9HT/VP9 RRR", Some("W9HT/VP9")), // hashed addressee, full sender
             ("CQ TEST", None),
             ("73", None),
         ];
         for (msg, want) in cases {
             assert_eq!(spot(msg).dx_callsign().as_deref(), want, "message: {msg:?}");
+        }
+    }
+
+    /// The sender hashed its own call and the decoder never resolved it, so
+    /// the only full call is the one being CALLED. Spotting it put CP6CL on
+    /// the air (JTDX, 2026-10-20 01:17:30, `CP6CL <...> RR73` at 408 Hz) when
+    /// the station at 408 Hz was 7P8GE, and W9HT/VP9 at every caller's 73.
+    #[test]
+    fn an_unresolved_hash_sender_spots_nobody() {
+        for msg in [
+            "CP6CL <...> RR73",
+            "W9HT/VP9 <...> 73",
+            "JM1LRA <...> -15",
+            "JM1LRA <...> R-15",
+            "CP6CL <...> FN42",
+            "KP3DR/9 <...>",
+        ] {
+            assert_eq!(spot(msg).dx_callsign(), None, "message: {msg:?}");
+            assert_eq!(spot(msg).duplicate_key(), None, "message: {msg:?}");
+            // A locator in it is the unnamed sender's, not the addressee's.
+            assert_eq!(grid_from_message(msg), None, "message: {msg:?}");
+            assert!(sender_is_unresolved_hash(msg), "message: {msg:?}");
+        }
+        for msg in ["CP6CL 7P8GE -08", "<...> W9HT/VP9 RRR", "CQ <...>", "73"] {
+            assert!(!sender_is_unresolved_hash(msg), "message: {msg:?}");
         }
     }
 

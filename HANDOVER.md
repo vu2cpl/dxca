@@ -2,9 +2,10 @@
 *For continuation in a new Claude session*
 
 <details>
-<summary><b>Contents</b> — 106 sections. Jump; do not read straight through. Looking for one fact? grep the heading text rather than opening the file.</summary>
+<summary><b>Contents</b> — 108 sections. Jump; do not read straight through. Looking for one fact? grep the heading text rather than opening the file.</summary>
 
 - [What this is](#what-this-is)
+- [Session 2026-10-20 — an unresolved-hash sender spots nobody](#session-2026-10-20--an-unresolved-hash-sender-spots-nobody)
 - [Session 2026-10-10 — WAS uses the spot's grid before the licence address](#session-2026-10-10--was-uses-the-spots-grid-before-the-licence-address)
 - [Session 2026-10-09 (night) — relayed comments verbatim, decodes in Aggregator's shape](#session-2026-10-09-night--relayed-comments-verbatim-decodes-in-aggregators-shape)
 - [Session 2026-10-09 (evening) — alerts carry the DX's audio offset](#session-2026-10-09-evening--alerts-carry-the-dxs-audio-offset)
@@ -44,6 +45,7 @@
 - [The installs (2026-08-28; VU2OY added 2026-08-30; production moved to .109 2026-09-22)](#the-installs-2026-08-28-vu2oy-added-2026-08-30-production-moved-to-109-2026-09-22)
 - [Release convention (2026-08-28, standing)](#release-convention-2026-08-28-standing)
 - [Open items → next session](#open-items--next-session)
+  - [OPEN: the 1.x Swift app spots the called station too (2026-10-20)](#open-the-1x-swift-app-spots-the-called-station-too-2026-10-20)
   - [DONE: v2.22.2 on the three remote Pis (2026-10-09)](#done-v2222-on-the-three-remote-pis-2026-10-09)
   - [DONE in v2.22.2: the GitHub release check (2026-10-08)](#done-in-v2222-the-github-release-check-2026-10-08)
   - [DONE: v2.22.3 on the three remote Pis (2026-10-09)](#done-v2223-on-the-three-remote-pis-2026-10-09)
@@ -735,6 +737,42 @@ and the web GUI's design system from the same repo's
 2026-09-22**, having run on noderedpi4 (192.168.1.169) from the 2026-08-27
 cutover. noderedpi4's install is stopped and disabled, kept as the
 rollback. The 1.x macOS app is the retained fallback (maintenance mode).
+
+## Session 2026-10-20 — an unresolved-hash sender spots nobody
+
+**Reported by Manoj while chasing W9HT/VP9 and CP6CL:** DXCA alerted on
+stations that were not transmitting. His JTDX shows `CP6CL 7P8GE -08` at
+408 Hz at 01:17:00, then `CP6CL <...> RR73` at the same 408 Hz at 01:17:30.
+That second line is 7P8GE signing off, but its own call was a hash JTDX had
+not resolved, so it printed `<...>`. DXCA spotted **CP6CL**.
+
+**Cause.** `Spot::dx_callsign` (ported verbatim from Swift
+`SpotMessage.dxCallsign`) prefers slot 1, the sender. When slot 1 is
+"decoration", it falls back to slot 0. `<...>` counts as decoration, so the
+called station became the spot. The same wrong call fed the dedupe key, the
+grid (`CP6CL <...> FN42` gave CP6CL a locator), the band matrix, the alerts
+and the cluster line. Meridian had the same bug in its own extractor, fixed
+in the same session as w6bt/meridian#114. Meridian-fed spots are clean on the
+Meridian side, but DXCA's local WSJT-X/JTDX/MSHV sources still hit this.
+
+**Fix.**
+- When slot 1 is exactly `<...>`, `dx_callsign` returns `None`.
+- A new `sender_is_unresolved_hash` lets `process_spot` refuse to rebroadcast
+  such a decode. Otherwise the 1.x "no callsign → broadcast as UNKNOWN" rule
+  would put a spot of nobody on every logger's feed.
+- The decode stays in the ring, so the Spots table still shows it, with no call.
+- The UDP passthrough is untouched: it forwards the datagram before parsing.
+
+The reverse form, `<...> W9HT/VP9 RRR` (hashed addressee, full sender), still
+spots the sender.
+
+**Tests:** `an_unresolved_hash_sender_spots_nobody` (core: call, dedupe key,
+grid, predicate) and `an_unresolved_hash_sender_never_reaches_the_cluster_feed`
+(server, over real UDP and telnet: the RR73 produces no line, and the
+following `CP6CL 7P8GE -08` does). Gate: fmt, clippy `-D warnings`, 347 tests
+and the web build all pass.
+
+**Not fixed:** the 1.x Swift app. See the open item below.
 
 ## Session 2026-10-10 — WAS uses the spot's grid before the licence address
 
@@ -2841,6 +2879,14 @@ on Windows with the SmartScreen caveat; a link to README › Updating; the
 edited in place to carry it.
 
 ## Open items → next session
+
+### OPEN: the 1.x Swift app spots the called station too (2026-10-20)
+
+`SpotMessage.dxCallsign` in the DXClusterAggregator repo has the fallback
+this session removed from the Rust port. `CALL <...> RR73` spots CALL, the
+station being called, at the unnamed sender's offset. Manoj: fix it, or keep
+it as a TODO. The Rust change (return `nil` when slot 1 is `<...>`) and its
+test table port across directly.
 
 ### DONE: v2.22.2 on the three remote Pis (2026-10-09)
 

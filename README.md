@@ -1336,6 +1336,22 @@ the USA, and `KG4/KG4OJT` (a US operator actually at Guantanamo) is
 Guantanamo. ClubLog's own exceptions still win, so a 2×3 call that cty.xml
 places somewhere else stays there (`KG4TJS` is in Alaska).
 
+### A hashed call names the station being called
+
+*Unreleased (after v2.23.1).* An FT8/FT4 decode such as `CP6CL <...> RR73`
+is a station signing off with CP6CL. That station's own call went out as a
+hash your decoder could not resolve, so it printed `<...>`. The only full
+call in the line is the station being **called**, which may not be on the
+air at all. DXCA used to spot that call, at the caller's audio offset, and
+alert on it. Now a decode like this has no callsign:
+
+- It still appears in the Spots table.
+- It raises no alert and touches no band matrix.
+- It is never sent on the cluster feed (not even as `UNKNOWN`).
+
+The reverse form, `<...> CP6CL RRR`, is CP6CL transmitting, and is spotted as
+before.
+
 ### Health alerts
 
 Two optional Telegram alerts under **Settings › My station › Telegram**, both

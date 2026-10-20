@@ -372,23 +372,33 @@ fn process_spot(
 
     // Rebroadcast dedupe: first spot per CALL-BAND-MODE per window reaches
     // the telnet feed + filtered destinations.
-    let passes = match spot.duplicate_key() {
-        Some(key) => {
-            // Opportunistic cleanup, like 1.x's 2000-entry sweep.
-            if dedupe.len() > 2000 {
-                dedupe.retain(|_, t| now - *t < dedupe_window_secs);
-            }
-            match dedupe.get(&key) {
-                Some(last) if now - last < dedupe_window_secs => false,
-                _ => {
-                    dedupe.insert(key, now);
-                    true
+    //
+    // A decode whose sender is an unresolved hash (`CP6CL <...> RR73`) names
+    // only the station being called, so it has no callsign — and the 1.x
+    // "no callsign → broadcast as UNKNOWN" rule below would put a spot of
+    // nobody on every logger's cluster feed. It stays in the ring (the Spots
+    // table shows what was decoded) but is never rebroadcast.
+    let passes = if dxca_core::sender_is_unresolved_hash(&spot.message) {
+        false
+    } else {
+        match spot.duplicate_key() {
+            Some(key) => {
+                // Opportunistic cleanup, like 1.x's 2000-entry sweep.
+                if dedupe.len() > 2000 {
+                    dedupe.retain(|_, t| now - *t < dedupe_window_secs);
+                }
+                match dedupe.get(&key) {
+                    Some(last) if now - last < dedupe_window_secs => false,
+                    _ => {
+                        dedupe.insert(key, now);
+                        true
+                    }
                 }
             }
+            // 1.x parity: no dedupe key (no callsign) → never counts as a
+            // duplicate → still broadcast (as UNKNOWN).
+            None => true,
         }
-        // 1.x parity: no dedupe key (no callsign) → never counts as a
-        // duplicate → still broadcast (as UNKNOWN).
-        None => true,
     };
 
     let line = format::format(&spot);
