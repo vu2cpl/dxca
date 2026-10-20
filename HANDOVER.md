@@ -752,7 +752,7 @@ not resolved, so it printed `<...>`. DXCA spotted **CP6CL**.
 called station became the spot. The same wrong call fed the dedupe key, the
 grid (`CP6CL <...> FN42` gave CP6CL a locator), the band matrix, the alerts
 and the cluster line. Meridian had the same bug in its own extractor, fixed
-in the same session as w6bt/meridian#114. Meridian-fed spots are clean on the
+in the same session. Meridian-fed spots are clean on the
 Meridian side, but DXCA's local WSJT-X/JTDX/MSHV sources still hit this.
 
 **Fix.**
