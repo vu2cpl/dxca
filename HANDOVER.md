@@ -5,6 +5,7 @@
 <summary><b>Contents</b> — 108 sections. Jump; do not read straight through. Looking for one fact? grep the heading text rather than opening the file.</summary>
 
 - [What this is](#what-this-is)
+- [Session 2026-10-23 — webpki-roots 1.0.10 drops the eMudhra root](#session-2026-10-23--webpki-roots-1010-drops-the-emudhra-root)
 - [Session 2026-10-20 — an unresolved-hash sender spots nobody](#session-2026-10-20--an-unresolved-hash-sender-spots-nobody)
 - [Session 2026-10-10 — WAS uses the spot's grid before the licence address](#session-2026-10-10--was-uses-the-spots-grid-before-the-licence-address)
 - [Session 2026-10-09 (night) — relayed comments verbatim, decodes in Aggregator's shape](#session-2026-10-09-night--relayed-comments-verbatim-decodes-in-aggregators-shape)
@@ -115,7 +116,7 @@
 
 </details>
 
-**Created:** 2026-08-26 · **Last updated:** 2026-10-09 · **Status:**
+**Created:** 2026-08-26 · **Last updated:** 2026-10-23 · **Status:**
 **v2.22.3 — alerts carry the DX's audio offset: `DF 1487 Hz` in Telegram
 and a `DF` column in the Alerts history, from the decoder or a cluster spot's
 comment. Adds `alerts_sent.offset_hz`, which migrates itself on first open.
@@ -737,6 +738,27 @@ and the web GUI's design system from the same repo's
 2026-09-22**, having run on noderedpi4 (192.168.1.169) from the 2026-08-27
 cutover. noderedpi4's install is stopped and disabled, kept as the
 rollback. The 1.x macOS app is the retained fallback (maintenance mode).
+
+## Session 2026-10-23 — webpki-roots 1.0.10 drops the eMudhra root
+
+**Why.** The private keys of eight eMudhra intermediate CAs could be
+recovered: they were generated with too little randomness in an April 2025
+ceremony and disclosed on 17 Oct 2026. Anyone holding them can issue a
+valid-looking certificate for any host. Browsers blocked the intermediates
+with revocation lists (OneCRL and similar). rustls with `webpki-roots` uses
+only the roots compiled into the binary and never checks revocation, so
+DXCA trusted those certificates for every HTTPS call `ureq` makes: Club Log,
+LoTW, the GitHub release check and Telegram.
+
+**What.** `cargo update -p webpki-roots --precise 1.0.10` (`Cargo.lock` only).
+1.0.10 removes `emSign ECC Root CA - G3`, the affected root. The other emSign
+roots stay, as they do in Mozilla's store. The `webpki-roots 0.26.11` entry is the
+compatibility shim that re-exports 1.x, so it picks up the change too.
+`cargo test --workspace` passes.
+
+**Not yet:** a release. The fix reaches the fleet only with the next tagged
+build (.109, Windows `.170`, the three remote Pis). Until then the running
+binaries still trust the root.
 
 ## Session 2026-10-20 — an unresolved-hash sender spots nobody
 
