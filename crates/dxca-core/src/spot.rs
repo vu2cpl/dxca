@@ -338,14 +338,6 @@ pub fn time_from_decode_ms(now_unix: i64, decode_ms: u32) -> i64 {
 /// What WSJT-X / JTDX / MSHV print for a hashed callsign they cannot resolve.
 const UNRESOLVED_HASH: &str = "<...>";
 
-/// Is the SENDER of this exchange (slot 1) a hashed call the decoder could
-/// not resolve? Such a decode names only the station being called.
-pub fn sender_is_unresolved_hash(message: &str) -> bool {
-    let mut parts = message.split(' ').filter(|p| !p.is_empty());
-    let first = parts.next();
-    first.is_some_and(|p| !p.eq_ignore_ascii_case("CQ")) && parts.next() == Some(UNRESOLVED_HASH)
-}
-
 /// Strip the `<>` brackets WSJT-X puts around hashed/known callsigns.
 fn strip_call_decoration(s: &str) -> String {
     s.trim_start_matches('<').trim_end_matches('>').to_string()
@@ -433,6 +425,8 @@ mod tests {
             ("K1JT LL85", Some("K1JT")),         // slot 1 is a grid → fall back to slot 0
             ("<...> W9HT/VP9 RRR", Some("W9HT/VP9")), // hashed addressee, full sender
             ("CQ TEST", None),
+            ("CQ EU", None), // VU2OY's Aggregator spotted `EU` as a call
+            ("TNX 73 GL", None),
             ("73", None),
         ];
         for (msg, want) in cases {
@@ -458,10 +452,6 @@ mod tests {
             assert_eq!(spot(msg).duplicate_key(), None, "message: {msg:?}");
             // A locator in it is the unnamed sender's, not the addressee's.
             assert_eq!(grid_from_message(msg), None, "message: {msg:?}");
-            assert!(sender_is_unresolved_hash(msg), "message: {msg:?}");
-        }
-        for msg in ["CP6CL 7P8GE -08", "<...> W9HT/VP9 RRR", "CQ <...>", "73"] {
-            assert!(!sender_is_unresolved_hash(msg), "message: {msg:?}");
         }
     }
 

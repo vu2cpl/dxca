@@ -25,6 +25,4 @@ pub mod solar;
 mod spot;
 pub mod wsjtx;
 
-pub use spot::{
-    Spot, grid_from_message, message_is_cq, sender_is_unresolved_hash, time_from_decode_ms,
-};
+pub use spot::{Spot, grid_from_message, message_is_cq, time_from_decode_ms};

@@ -354,30 +354,30 @@ fn process_spot(
         .entry(spot.source_name.clone())
         .or_insert(0) += 1;
 
+    // A spot with no callsign is recorded and goes nowhere else. 1.x
+    // broadcast it as `UNKNOWN`, a spot of nobody, on every feed. What gets
+    // here: a decode whose sender is an unresolved hash (`CP6CL <...> RR73`
+    // names only the station being called), free text (`TNX 73 GL`), and a
+    // relayed spot whose call cell is not a call (VU2OY's RBN Aggregator
+    // spotted `EU` on 2026-10-28). A `passes = false` verdict would not be
+    // enough: unfiltered UDP and MQTT destinations take every spot
+    // regardless, which is how v2.23.2 still sent the hash one. The verbatim
+    // passthrough already relayed a decode's datagram before it was parsed.
+    let Some(call) = spot.dx_callsign() else {
+        record(state, spot, ring_capacity);
+        return;
+    };
+
     // Blacklist: drop before the ring, so the spot is absent from the Spots
     // table, the telnet server, the filtered UDP destinations and Telegram
-    // alike. A spot with no extractable callsign can never match, and is
-    // never dropped by accident.
+    // alike.
     //
     // The one thing this cannot suppress is the VERBATIM UDP passthrough:
     // that forwards the original datagram before anything is parsed (1.x
     // behaviour, and the reason click-to-fill works), so a blacklisted call
     // inside a WSJT-X decode still reaches the logger by that path. Cluster
     // spots have no passthrough and are dropped completely.
-    if let Some(call) = spot.dx_callsign()
-        && state.is_blacklisted(&call)
-    {
-        return;
-    }
-
-    // A decode whose sender is an unresolved hash (`CP6CL <...> RR73`) names
-    // only the station being called, so it has no callsign. It is recorded
-    // and goes nowhere else. A `passes = false` verdict is not enough:
-    // unfiltered UDP and MQTT destinations take every spot regardless, and
-    // v2.23.2 sent them this one as `UNKNOWN`. The verbatim passthrough
-    // already relayed the datagram before it was parsed.
-    if dxca_core::sender_is_unresolved_hash(&spot.message) {
-        record(state, spot, ring_capacity);
+    if state.is_blacklisted(&call) {
         return;
     }
 
@@ -397,8 +397,7 @@ fn process_spot(
                 }
             }
         }
-        // 1.x parity: no dedupe key (no callsign) → never counts as a
-        // duplicate → still broadcast (as UNKNOWN).
+        // Not reached: the key is built from the call checked above.
         None => true,
     };
 
@@ -406,12 +405,11 @@ fn process_spot(
     if passes {
         state.telnet.broadcast_line(&line);
     }
-    let dx_call = spot.dx_callsign();
     state.broadcaster().broadcast_spot(
         &SpotPayload {
             cluster_line: &line,
             source_name: &spot.source_name,
-            callsign: dx_call.as_deref(),
+            callsign: Some(&call),
             frequency_hz: spot.frequency_hz(),
             snr_db: spot.snr_db,
             mode: &spot.mode,
@@ -426,7 +424,7 @@ fn process_spot(
         &MqttSpot {
             cluster_line: &line,
             source_name: &spot.source_name,
-            callsign: dx_call.as_deref(),
+            callsign: Some(&call),
             frequency_hz: spot.frequency_hz(),
             snr_db: spot.snr_db,
             mode: &spot.mode,

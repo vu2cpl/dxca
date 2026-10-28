@@ -177,9 +177,10 @@ async fn a_real_wsjtx_decode_reports_ft8_not_a_tilde() {
 /// callsign the 1.x rule would rebroadcast it as `UNKNOWN`, so it must
 /// reach neither the telnet feed nor an UNFILTERED cluster destination
 /// (v2.23.2 still sent those `UNKNOWN`), while the next real exchange
-/// reaches both.
+/// reaches both. v2.23.3 stopped only that shape; `CQ EU` and free text
+/// have no callsign either, and still went out as `UNKNOWN` until v2.23.4.
 #[tokio::test]
-async fn an_unresolved_hash_sender_never_reaches_the_cluster_feed() {
+async fn a_spot_with_no_callsign_never_reaches_the_cluster_feed() {
     use dxca_core::wsjtx::{Decode, Status, encode_decode, encode_status};
 
     // An unfiltered cluster-format destination takes every spot, whatever
@@ -234,6 +235,8 @@ async fn an_unresolved_hash_sender_never_reaches_the_cluster_feed() {
     for bytes in [
         encode_status(2, &status),
         encode_decode(2, &decode("CP6CL <...> RR73")),
+        encode_decode(2, &decode("CQ EU")),
+        encode_decode(2, &decode("TNX 73 GL")),
         encode_decode(2, &decode("CP6CL 7P8GE -08")),
     ] {
         send.send_to(&bytes, ("127.0.0.1", source_port))
@@ -242,15 +245,15 @@ async fn an_unresolved_hash_sender_never_reaches_the_cluster_feed() {
         tokio::time::sleep(std::time::Duration::from_millis(100)).await;
     }
 
-    // The first spot line on the feed is the real one: the RR73 before it
-    // produced nothing — neither CP6CL nor UNKNOWN.
+    // The first spot line on the feed is the real one: the three decodes
+    // before it produced nothing — neither CP6CL nor UNKNOWN.
     let line = read_some(&mut telnet, "Z").await;
     assert!(line.contains("7P8GE"), "line: {line:?}");
     assert!(!line.contains("CP6CL"), "line: {line:?}");
     assert!(!line.contains("UNKNOWN"), "line: {line:?}");
 
     // Same for the unfiltered destination: its first datagram is the real
-    // spot, so the RR73 sent nothing ahead of it.
+    // spot, so the three sent nothing ahead of it.
     let mut buf = vec![0u8; 2048];
     let (n, _) = tokio::time::timeout(std::time::Duration::from_secs(5), feed.recv_from(&mut buf))
         .await
@@ -260,12 +263,14 @@ async fn an_unresolved_hash_sender_never_reaches_the_cluster_feed() {
     assert!(datagram.contains("7P8GE"), "datagram: {datagram:?}");
     assert!(!datagram.contains("UNKNOWN"), "datagram: {datagram:?}");
 
-    // Both decodes are still in the ring — the Spots table shows what was
-    // decoded — but the unresolved one names nobody.
-    let ring = state.recent_spots(2);
-    let unresolved = ring
-        .iter()
-        .find(|s| s.message == "CP6CL <...> RR73")
-        .expect("the decode is kept in the ring");
-    assert_eq!(unresolved.dx_callsign(), None);
+    // All four decodes are still in the ring — the Spots table shows what
+    // was decoded — but the first three name nobody.
+    let ring = state.recent_spots(4);
+    for message in ["CP6CL <...> RR73", "CQ EU", "TNX 73 GL"] {
+        let kept = ring
+            .iter()
+            .find(|s| s.message == message)
+            .unwrap_or_else(|| panic!("{message:?} is kept in the ring"));
+        assert_eq!(kept.dx_callsign(), None, "message: {message:?}");
+    }
 }

@@ -4,7 +4,8 @@
 //!
 //! - Happy path: login prompt → call → welcome → spot line. The node goes
 //!   proven-Live, the spot lands in the ring as a synthetic decode, and
-//!   the telnet feed carries a `DX de <node>:` line.
+//!   the telnet feed carries a `DX de <node>:` line. A spot whose call
+//!   cell is not a call (`EU`) is kept in the ring and relayed nowhere.
 //! - Flaky node: accepts TCP, streams banner noise, never acks. The
 //!   session must stay UNPROVEN (yellow, 1.x honest-status), the auth
 //!   watchdog must recycle it, and the backoff attempt count must
@@ -53,6 +54,11 @@ async fn cluster_spot_flows_to_ring_and_telnet() {
         s.write_all(b"Hello VU2CPL, welcome to the test node\r\n")
             .await
             .unwrap();
+        // VU2OY's RBN Aggregator, 2026-10-28: `EU` in the call cell. It has
+        // no callsign, so it must not be relayed as `UNKNOWN`.
+        s.write_all(b"DX de VU2OY-#:   18100.0  EU   -12 dB   6 FT8  1185  0633Z\r\n")
+            .await
+            .unwrap();
         s.write_all(
             b"DX de W3LPL:     14074.0  K1JT           FT8 -10 dB                  1428Z\r\n",
         )
@@ -75,12 +81,12 @@ async fn cluster_spot_flows_to_ring_and_telnet() {
     let manager = NodeManager::new();
     manager.start_node("VE7CC".into(), test_client_cfg(node_port), input_tx);
 
-    // Status: proven Live with one spot counted.
+    // Status: proven Live with both spots counted.
     let mgr = &manager;
-    wait_until("node proven live with a spot", 10, || {
+    wait_until("node proven live with its spots", 10, || {
         mgr.statuses()
             .get("VE7CC")
-            .is_some_and(|s| s.proven && s.spot_count == 1)
+            .is_some_and(|s| s.proven && s.spot_count == 2)
     })
     .await;
     let st = manager.statuses()["VE7CC"].clone();
@@ -88,15 +94,20 @@ async fn cluster_spot_flows_to_ring_and_telnet() {
     assert!(st.connected);
     assert_eq!(st.attempt, 0);
 
-    // The synthetic decode is in the ring, 1.x handleClusterSpot-style.
-    wait_until("spot in ring", 5, || !state.recent_spots(1).is_empty()).await;
+    // The synthetic decodes are in the ring, 1.x handleClusterSpot-style.
+    // The `EU` one is kept for the Spots table, naming nobody.
+    wait_until("spots in ring", 5, || state.recent_spots(2).len() == 2).await;
+    let eu = &state.recent_spots(2)[1];
+    assert_eq!(eu.message, "CQ EU");
+    assert_eq!(eu.dx_callsign(), None);
     let spot = &state.recent_spots(1)[0];
     assert_eq!(spot.message, "CQ K1JT");
     assert_eq!(spot.source_name, "VE7CC");
     assert_eq!(spot.mode, "FT8");
     assert_eq!(spot.dial_frequency_hz, 14_074_000);
 
-    // And the telnet feed carries the re-formatted line, node as spotter.
+    // And the telnet feed carries the re-formatted line, node as spotter,
+    // with nothing ahead of it for the `EU` spot.
     let mut got = String::new();
     let mut buf = [0u8; 1024];
     while !got.contains("K1JT") {
@@ -108,6 +119,7 @@ async fn cluster_spot_flows_to_ring_and_telnet() {
         got.push_str(&String::from_utf8_lossy(&buf[..n]));
     }
     assert!(got.contains("DX de VE7CC:"), "got: {got:?}");
+    assert!(!got.contains("UNKNOWN"), "got: {got:?}");
 }
 
 #[tokio::test]

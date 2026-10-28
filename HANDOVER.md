@@ -5,6 +5,7 @@
 <summary><b>Contents</b> — 108 sections. Jump; do not read straight through. Looking for one fact? grep the heading text rather than opening the file.</summary>
 
 - [What this is](#what-this-is)
+- [Session 2026-10-28 — a spot with no callsign goes nowhere](#session-2026-10-28--a-spot-with-no-callsign-goes-nowhere)
 - [Session 2026-10-23 — webpki-roots 1.0.10 drops the eMudhra root](#session-2026-10-23--webpki-roots-1010-drops-the-emudhra-root)
 - [Session 2026-10-20 — an unresolved-hash sender spots nobody](#session-2026-10-20--an-unresolved-hash-sender-spots-nobody)
 - [Session 2026-10-10 — WAS uses the spot's grid before the licence address](#session-2026-10-10--was-uses-the-spots-grid-before-the-licence-address)
@@ -46,6 +47,7 @@
 - [The installs (2026-08-28; VU2OY added 2026-08-30; production moved to .109 2026-09-22)](#the-installs-2026-08-28-vu2oy-added-2026-08-30-production-moved-to-109-2026-09-22)
 - [Release convention (2026-08-28, standing)](#release-convention-2026-08-28-standing)
 - [Open items → next session](#open-items--next-session)
+  - [OPEN: the 1.x Swift app still sends `UNKNOWN` for other no-call spots (2026-10-28)](#open-the-1x-swift-app-still-sends-unknown-for-other-no-call-spots-2026-10-28)
   - [DONE: the 1.x Swift app spots the called station too (2026-10-20)](#done-the-1x-swift-app-spots-the-called-station-too-2026-10-20)
   - [DONE: v2.22.2 on the three remote Pis (2026-10-09)](#done-v2222-on-the-three-remote-pis-2026-10-09)
   - [DONE in v2.22.2: the GitHub release check (2026-10-08)](#done-in-v2222-the-github-release-check-2026-10-08)
@@ -738,6 +740,45 @@ and the web GUI's design system from the same repo's
 2026-09-22**, having run on noderedpi4 (192.168.1.169) from the 2026-08-27
 cutover. noderedpi4's install is stopped and disabled, kept as the
 rollback. The 1.x macOS app is the retained fallback (maintenance mode).
+
+## Session 2026-10-28 — a spot with no callsign goes nowhere
+
+**Manoj:** *"users are still getting unknown spots?"* — with the whole
+fleet on v2.23.3. Yes. v2.23.3 stopped one shape only, the decode whose
+sender is `<...>`. Any other spot with no callsign still took the 1.x path:
+no dedupe key, so never a duplicate, so out on the telnet feed and every
+UDP/MQTT destination with `UNKNOWN` in the call cell (`format.rs` falls
+back to it).
+
+**Seen live.** A sweep of `/api/spots?limit=2000` on four hosts (vu2wj
+timed out) found one on vu2oy: a spot relayed by VU2OY's RBN Aggregator
+node, 18100.0 FT8 −12 dB, comment `-12 dB 6 FT8 1185`, with **`EU`** in the
+call cell. The Aggregator took a directed `CQ EU …` for a call. A cluster
+spot becomes the synthetic message `CQ <call>`, so this was `CQ EU`, and
+`EU` fails `looks_like_callsign` (no digit). The other hosts had none in
+their windows, which on the busy ones is only about 7 minutes. Free text
+(`TNX 73 GL`) and both-calls-hashed decodes take the same path.
+
+**Fix.** `process_spot` now asks `dx_callsign()` once, first: no call means
+`record` (ring + live event) and return, before the blacklist, the dedupe
+and any fan-out. This replaces v2.23.3's narrower `sender_is_unresolved_hash`
+check, which is removed from `dxca-core` (a hash sender already has no
+call). The blacklist check and the MQTT/UDP payloads reuse that same call.
+Alerts were already safe: `users.rs` skips a spot with no call. The
+`UNKNOWN` fallback stays in `format.rs`, which is a pure function, but
+nothing in the pipeline reaches it any more.
+
+**Tests.** `spot_path`'s test is now
+`a_spot_with_no_callsign_never_reaches_the_cluster_feed`, sending
+`CP6CL <...> RR73`, `CQ EU` and `TNX 73 GL` ahead of the real exchange.
+`cluster_ingest`'s happy path has the fake node send VU2OY's `EU` line
+first. Both fail against the v2.23.3 code (`UNKNOWN` lines on the telnet
+feed, run from a detached worktree of `main` with the new test files) and
+pass with the fix. `dx_callsign`'s table gains `CQ EU` and `TNX 73 GL`.
+`just gate`: fmt, clippy `-D warnings`, 347 tests and the web build pass.
+
+**The 1.x Swift app** has the same 1.x behaviour for these spots and is not
+changed: it is the shelved fallback (see the open item).
 
 ## Session 2026-10-23 — webpki-roots 1.0.10 drops the eMudhra root
 
@@ -2939,6 +2980,15 @@ on Windows with the SmartScreen caveat; a link to README › Updating; the
 edited in place to carry it.
 
 ## Open items → next session
+
+### OPEN: the 1.x Swift app still sends `UNKNOWN` for other no-call spots (2026-10-28)
+
+dxca v2.23.4 sends a spot with no callsign nowhere. The Swift app's
+`handleDecode` only returns early for a `<...>` sender (#2), so `CQ EU`
+from a cluster node or a free-text decode still goes out as `UNKNOWN`.
+Not fixed on purpose: the app is the shelved fallback, fixes only if it is
+needed again. The port is the same shape: return where it now checks
+`senderIsUnresolvedHash`, for any spot whose `dxCallsign` is `nil`.
 
 ### DONE: the 1.x Swift app spots the called station too (2026-10-20)
 

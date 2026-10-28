@@ -1374,6 +1374,17 @@ alert on it. Now a decode like this has no callsign:
 The reverse form, `<...> CP6CL RRR`, is CP6CL transmitting, and is spotted as
 before.
 
+### A spot with no callsign goes nowhere
+
+*Since v2.23.4.* The hashed decode above is one kind of spot with no
+callsign. There are others: free text such as `TNX 73 GL`, and a relayed
+cluster spot whose call cell is not a call (VU2OY's RBN Aggregator spotted
+`EU`). DXCA 1.x sent every one of these on as `UNKNOWN`, and so did 2.x
+until v2.23.4. Now the rule above covers them all: the spot appears in the
+Spots table, raises no alert, and is sent to no destination. The verbatim
+UDP passthrough is unchanged, so a logger fed by it still sees the raw
+decode.
+
 ### Health alerts
 
 Two optional Telegram alerts under **Settings › My station › Telegram**, both
