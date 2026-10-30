@@ -3014,7 +3014,7 @@ fallback), then fixed the same day on Manoj's *"fix the swift app too"*:
 both paths now `guard let call = spot.dxCallsign else { return }`.
 Merged as DXClusterAggregator-macOS #3 (squash `a93646b`) on Manoj's
 *"merge #3 and release v1.8.9"*, and **released as v1.8.9** the same day,
-notarized and verified. Not installed over the 1.8.8 copy in /Applications.
+notarized and verified. Manoj installed it in /Applications on 2026-10-30.
 
 ### DONE: the 1.x Swift app spots the called station too (2026-10-20)
 
