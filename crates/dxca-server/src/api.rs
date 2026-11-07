@@ -764,6 +764,7 @@ fn mqtt_live_configs(dests: &[crate::db::MqttDestination]) -> Vec<MqttDestinatio
             client_id: d.client_id.clone(),
             allowed_sources: d.sources.iter().cloned().collect(),
             unfiltered: d.unfiltered,
+            status: d.status,
         })
         .collect()
 }

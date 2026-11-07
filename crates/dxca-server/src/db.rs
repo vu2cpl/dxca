@@ -194,6 +194,12 @@ pub struct MqttDestination {
     /// Publish every spot, ignoring the dedupe verdict.
     pub unfiltered: bool,
     pub enabled: bool,
+    /// Also publish retained status under `<topic>/status`: the cluster
+    /// nodes' health, and each account's award totals and last few alerts
+    /// (`statuspub`). Off unless ticked, because the per-account half is
+    /// log data — an admin's broker should not start receiving every
+    /// account's DXCC totals just because an upgrade added a feature.
+    pub status: bool,
 }
 
 impl Default for MqttDestination {
@@ -211,6 +217,7 @@ impl Default for MqttDestination {
             sources: Vec::new(),
             unfiltered: false,
             enabled: true,
+            status: false,
         }
     }
 }
@@ -1922,6 +1929,21 @@ mod tests {
         // The neighbouring radio is untouched.
         assert!(cfg.flex_enabled);
         assert_eq!(cfg.flex_host, "192.168.1.148");
+    }
+
+    /// Every stored MQTT row predates `status`, and on a multi-account
+    /// install that flag publishes other people's log totals to the admin's
+    /// broker. A missing key read as anything but off would start doing that
+    /// on upgrade, unasked.
+    #[test]
+    fn mqtt_status_defaults_off_for_a_stored_row_that_predates_it() {
+        let old_row = r#"[{"name":"shack","host":"192.168.1.169","port":1883,
+            "username":"svc","password":"p","topic":"shack/dxca/spots",
+            "client_id":"dxca","sources":[],"unfiltered":false,"enabled":true}]"#;
+        let dests: Vec<MqttDestination> = serde_json::from_str(old_row).expect("old row parses");
+        assert!(!dests[0].status, "must default off");
+        assert!(dests[0].enabled, "the rest of the row still loads");
+        assert_eq!(dests[0].topic, "shack/dxca/spots");
     }
 
     /// The upgrade that matters most here: an account that configured its

@@ -25,6 +25,18 @@ project — joint work by Basil Thomas W6BT, Vinod VU3ESV, and Ram VU3RDD
 
 ## Status
 
+**v2.24.0** (2026-11-07): **MQTT status topics, for dashboards.** An MQTT
+destination gains a **Status** tick. With it on, DXCA publishes retained
+`<base>/status` (cluster nodes online, spots per source) and
+`<base>/status/<CALL>` per account (DXCC worked/confirmed, slots, award
+totals, the last five alerts) every minute, so Home Assistant or Node-RED can
+show them without storing a DXCA password. Off by default: on a multi-account
+install it sends every account's log totals to the admin's broker. The shack
+uses it to bring back HA's DXCC card, dark since the Node-RED tracker DXCA
+replaced was switched off. Nothing to do on upgrade; rolling back is safe
+(an older release ignores the stored flag). See [Status topics, for
+dashboards](#status-topics-for-dashboards).
+
 **v2.23.4** (2026-10-28): **a spot with no callsign goes to no destination,
 whatever the reason it has none.** v2.23.3 stopped only the unresolved-hash
 decode. Other spots with no callsign still went out as `UNKNOWN`: free text
@@ -1723,6 +1735,35 @@ line under each row — see [Configuration](#configuration)) and `unfiltered`
 flag as the UDP ones, so MQTT and your logger see one consistent feed. QoS 0: a spot feed
 is a live stream, and dropping one when the queue backs up beats stalling the
 pipeline on a slow broker.
+
+#### Status topics, for dashboards
+
+Tick **Status** on a destination and DXCA also publishes two kinds of
+**retained** message under the same base, once a minute and once at start:
+
+| topic | payload |
+|---|---|
+| `<base>/status` | `{"ts":…,"version":"2.24.0","clusters_online":8,"clusters_total":9,"clusters":{"VU2CPL":{"connected":true,"state":"Live","spot_count":…,"last_spot_unix":…},…},"spots_per_source":{…}}` |
+| `<base>/status/<CALL>` | `{"ts":…,"callsign":"VU2CPL","stats":{"dxcc_worked":…,"dxcc_confirmed":…,"slots_worked":…,"slots_confirmed":…,"challenge_worked":…,"challenge_confirmed":…},"stats_current":{…},"award_stats":{…},"qso_count":…,"last_refresh_unix":…,"recent_alerts":[{"time_unix":…,"callsign":"3Y0J","band":"20M","mode":"FT8","dxcc_name":"Bouvet","level":"new_dxcc"},…]}` |
+
+These are the numbers on the Spots screen's station card and the last five
+rows of **Alerts**, for a dashboard (Home Assistant, Node-RED) that should
+show them without a DXCA login. `<CALL>` is the account's callsign,
+uppercased, with `/`, `+` and `#` turned into `_` so a portable call stays
+one topic level. An account with no ClubLog log loaded gets no per-account
+topic rather than a row of zeroes.
+
+**It is off unless ticked, on purpose:** on a multi-account install the
+per-account topics carry *every* account's log totals and recent alerts to
+the admin's broker. Retained because a dashboard subscribes at its own
+restart and should show the state at once; the spot topics stay unretained,
+since a stale spot replayed to a new subscriber is a lie about the band.
+
+A Home Assistant MQTT sensor reads them directly, e.g.
+`state_topic: shack/dxca/spots/status/VU2CPL`,
+`value_template: "{{ value_json.stats.dxcc_confirmed }}"`, with
+`expire_after: 180` so a stopped DXCA shows as unavailable rather than as
+frozen numbers.
 
 Two limits worth knowing: **plain MQTT only** (port 1883, optional
 username/password — TLS on 8883 would need rumqttc's rustls feature turned

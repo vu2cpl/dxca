@@ -22,6 +22,21 @@
 //! QoS 0 throughout, and `try_publish` rather than `publish`: a spot feed is
 //! a live stream, so dropping one when the outbound queue is full is
 //! correct — blocking the pipeline on a slow broker is not.
+//!
+//! A destination can also opt in to **status** (`status: true`), a slow,
+//! retained sibling of the feed:
+//!
+//! ```text
+//! shack/dxca/spots/status          cluster-node health, every minute
+//! shack/dxca/spots/status/VU2CPL   one account's award totals + last alerts
+//! ```
+//!
+//! Retained, because the consumers are dashboards (Home Assistant) that
+//! subscribe at their own restart and must show the current state at once,
+//! not a minute later. The spot topics stay unretained: a stale spot replayed
+//! to a new subscriber is a lie about the band. What goes in the payloads is
+//! the server's business (`dxca-server`'s `statuspub`); this module only owns
+//! the topics and the delivery.
 
 use rumqttc::{Client, MqttOptions, QoS};
 use std::collections::{HashMap, HashSet};
@@ -47,6 +62,8 @@ pub struct MqttDestinationConfig {
     pub allowed_sources: HashSet<String>,
     /// Ignore the dedupe verdict and publish every spot.
     pub unfiltered: bool,
+    /// Publish the retained status topics as well as spots.
+    pub status: bool,
 }
 
 impl MqttDestinationConfig {
@@ -56,6 +73,31 @@ impl MqttDestinationConfig {
     fn cluster_topic(&self) -> String {
         format!("{}/cluster", self.topic.trim_end_matches('/'))
     }
+    /// `<base>/status`, or `<base>/status/<suffix>` for one account.
+    fn status_topic(&self, suffix: Option<&str>) -> String {
+        let base = format!("{}/status", self.topic.trim_end_matches('/'));
+        match suffix {
+            Some(s) => format!("{base}/{}", topic_segment(s)),
+            None => base,
+        }
+    }
+}
+
+/// Make a callsign safe as ONE topic level.
+///
+/// `/` would split a portable call (`VU2CPL/P`) into two levels, so a
+/// subscriber to `status/VU2CPL/P` and one to `status/+` would disagree about
+/// whether the account exists; `+` and `#` are wildcards that a broker
+/// refuses in a topic it is asked to publish to. All three become `_`, and the
+/// call is uppercased so `vu2cpl` and `VU2CPL` cannot be two topics.
+pub fn topic_segment(call: &str) -> String {
+    call.trim()
+        .chars()
+        .map(|c| match c {
+            '/' | '+' | '#' => '_',
+            c => c.to_ascii_uppercase(),
+        })
+        .collect()
 }
 
 /// One spot, as MQTT publishes it. Deliberately flat and self-describing:
@@ -179,6 +221,34 @@ impl MqttPublisher {
         c
     }
 
+    /// Publish one retained status message to every destination that opted
+    /// in. `suffix` = `None` for the server-wide topic, `Some(callsign)` for
+    /// one account's.
+    ///
+    /// QoS 1 where spots use 0: this is one small message a minute, and a
+    /// dropped one leaves a dashboard on stale numbers until the next tick —
+    /// worth the ack. Still `try_publish`, so a dead broker never blocks the
+    /// ticker that calls this.
+    pub fn publish_status(&self, suffix: Option<&str>, body: &str) {
+        for d in self.dests.iter().filter(|d| d.cfg.status) {
+            let topic = d.cfg.status_topic(suffix);
+            if d.client
+                .try_publish(topic, QoS::AtLeastOnce, true, body.as_bytes())
+                .is_ok()
+            {
+                d.sent.fetch_add(1, Ordering::Relaxed);
+            } else {
+                d.failed.fetch_add(1, Ordering::Relaxed);
+            }
+        }
+    }
+
+    /// Whether any destination wants status — lets the ticker skip building
+    /// payloads (a walk of every account's matrix) when nobody will read them.
+    pub fn wants_status(&self) -> bool {
+        self.dests.iter().any(|d| d.cfg.status)
+    }
+
     /// Publish one spot to every destination that wants it.
     ///
     /// `passes_filters` is the pipeline's dedupe verdict, honoured exactly
@@ -259,9 +329,25 @@ mod tests {
             client_id: "dxca".into(),
             allowed_sources: HashSet::new(),
             unfiltered: false,
+            status: true,
         };
         assert_eq!(cfg.json_topic(), "shack/dxca/spots/json");
         assert_eq!(cfg.cluster_topic(), "shack/dxca/spots/cluster");
+        assert_eq!(cfg.status_topic(None), "shack/dxca/spots/status");
+        assert_eq!(
+            cfg.status_topic(Some("VU2CPL")),
+            "shack/dxca/spots/status/VU2CPL"
+        );
+    }
+
+    /// A portable call must stay one topic level, and a wildcard character
+    /// must never reach a publish — the broker would reject it and the
+    /// account's status would silently never appear.
+    #[test]
+    fn a_callsign_becomes_exactly_one_safe_topic_level() {
+        assert_eq!(topic_segment("vu2cpl/p"), "VU2CPL_P");
+        assert_eq!(topic_segment(" A+B#C "), "A_B_C");
+        assert_eq!(topic_segment("VU2OY"), "VU2OY");
     }
 
     #[test]

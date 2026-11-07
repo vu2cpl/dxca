@@ -2,9 +2,10 @@
 *For continuation in a new Claude session*
 
 <details>
-<summary><b>Contents</b> — 108 sections. Jump; do not read straight through. Looking for one fact? grep the heading text rather than opening the file.</summary>
+<summary><b>Contents</b> — 112 sections. Jump; do not read straight through. Looking for one fact? grep the heading text rather than opening the file.</summary>
 
 - [What this is](#what-this-is)
+- [Session 2026-11-07 — retained MQTT status for dashboards](#session-2026-11-07--retained-mqtt-status-for-dashboards)
 - [Session 2026-10-28 — a spot with no callsign goes nowhere](#session-2026-10-28--a-spot-with-no-callsign-goes-nowhere)
 - [Session 2026-10-23 — webpki-roots 1.0.10 drops the eMudhra root](#session-2026-10-23--webpki-roots-1010-drops-the-emudhra-root)
 - [Session 2026-10-20 — an unresolved-hash sender spots nobody](#session-2026-10-20--an-unresolved-hash-sender-spots-nobody)
@@ -746,6 +747,40 @@ and the web GUI's design system from the same repo's
 2026-09-22**, having run on noderedpi4 (192.168.1.169) from the 2026-08-27
 cutover. noderedpi4's install is stopped and disabled, kept as the
 rollback. The 1.x macOS app is the retained fallback (maintenance mode).
+
+## Session 2026-11-07 — retained MQTT status for dashboards
+
+**Why.** Home Assistant's DXCC Tracker card (the shack's Radio dashboard)
+has read "unavailable" since 2026-08-27: it was fed by the Node-RED DXCC
+tab, which was switched off the day DXCA took over. DXCA's public
+`/api/status` has the cluster health, but the numbers the card shows —
+entities, confirmed, slots, recent alerts — are behind a session
+(`/api/me/station`, `/api/me/alerts`). **Manoj chose DXCA publishing them
+to MQTT** over Node-RED logging in, so no DXCA password is stored on the Pi
+and no session can expire.
+
+**What.** `MqttDestination.status` (serde default off, pinned by
+`mqtt_status_defaults_off_for_a_stored_row_that_predates_it`). New
+`statuspub.rs`, spawned beside `health`: every 60 s, and once at start,
+retained QoS 1 to `<base>/status` (nodes, `clusters_online/total`, spots per
+source) and `<base>/status/<CALL>` per account with a loaded matrix
+(`MatrixStats`, `stats_current`, `award_stats`, `matrix_meta`, the last 5
+`sent_alerts` trimmed to time/call/band/mode/entity/level). Payload builders
+are pure functions with tests; `topic_segment` keeps `VU2CPL/P` one level
+and strips wildcards. Settings › MQTT gains a **Status** column.
+
+**Decisions.**
+- *Opt-in per destination, not on by default:* on a multi-account install
+  the per-account topics publish every account's log totals to the admin's
+  broker. The fleet's other installs see no change until someone ticks it.
+- *Retained, QoS 1* — the reverse of spots. A dashboard subscribes at its own
+  restart and needs the state at once; a stale spot replayed is a lie, a
+  stale DXCC total is merely a minute old.
+- *No zeroes for an account without a log*, the station card's own rule.
+- *Delivery detail (channels, errors) stays behind the login*; the topic
+  carries what a tile shows.
+- *Rollback-safe:* `MqttDestination` is not `deny_unknown_fields`, so an older
+  release ignores the stored `status` key.
 
 ## Session 2026-10-28 — a spot with no callsign goes nowhere
 

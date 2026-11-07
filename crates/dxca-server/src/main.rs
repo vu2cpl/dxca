@@ -236,6 +236,9 @@ async fn main() {
     // Feed-health alerts. Silent unless an account sets a threshold, and
     // powerless if this host is what failed — see the module docs.
     dxca_server::health::spawn(users.clone(), pipeline_state.clone(), manager.clone());
+    // Retained status for dashboards (Home Assistant). Idle until an admin
+    // ticks Status on an MQTT destination — see the module docs.
+    dxca_server::statuspub::spawn(users.clone(), pipeline_state.clone(), manager.clone());
     // Once a day, a look at GitHub's latest release; a banner in the web UI
     // and one log line when there is a newer one. Never downloads anything,
     // and never asks by itself from a development build.

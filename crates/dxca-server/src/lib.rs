@@ -13,6 +13,7 @@ pub mod health;
 pub mod nodes;
 pub mod pipeline;
 pub mod refresh;
+pub mod statuspub;
 pub mod telnetcmd;
 pub mod update;
 pub mod users;
