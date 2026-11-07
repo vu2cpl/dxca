@@ -83,6 +83,26 @@ fn alert_summary(a: &SentAlert) -> serde_json::Value {
     })
 }
 
+/// The award totals a tile shows: the counts, not the chase lists.
+///
+/// `AwardStats` carries the WAS and Triple Play worklists, the zone lists and
+/// every Marathon year — the Stats screen's data, many kilobytes for a large
+/// log. Sent whole it overran rumqttc's 10 KB packet limit, the client
+/// dropped the broker connection every minute, and the account topic never
+/// arrived (v2.24.0). The lists stay in `/api/me/station`.
+fn award_summary(a: &dxca_core::matrix::AwardStats) -> serde_json::Value {
+    serde_json::json!({
+        "was_worked": a.was_worked,
+        "was_confirmed": a.was_confirmed,
+        "triple_play": a.triple_play,
+        "waz_worked": a.waz_worked,
+        "waz_confirmed": a.waz_confirmed,
+        "iota_worked": a.iota_worked,
+        "iota_confirmed": a.iota_confirmed,
+        "vucc": a.vucc,
+    })
+}
+
 /// One account's payload, or `None` when it has no log loaded.
 pub fn user_payload(
     ts: i64,
@@ -99,7 +119,7 @@ pub fn user_payload(
         "callsign": callsign,
         "stats": stats,
         "stats_current": stats_current,
-        "award_stats": award_stats,
+        "award_stats": award_stats.as_ref().map(award_summary),
         "qso_count": meta.map(|m| m.0),
         "last_refresh_unix": meta.map(|m| m.1),
         "recent_alerts": alerts.iter().map(alert_summary).collect::<Vec<_>>(),
@@ -202,6 +222,61 @@ mod tests {
     #[test]
     fn an_account_without_a_log_publishes_nothing() {
         assert!(user_payload(1, "VU2XX", None, None, None, None, &[]).is_none());
+    }
+
+    /// v2.24.0 sent `award_stats` whole: for a real log the chase lists
+    /// pushed the message past rumqttc's 10 KB cap and the account topic
+    /// never arrived. The summary keeps the counts and drops the lists, so a
+    /// log with every list long still fits with room to spare.
+    #[test]
+    fn award_chase_lists_stay_out_of_the_status_payload() {
+        let states: Vec<String> = (0..50).map(|i| format!("STATE{i:02}")).collect();
+        let award = dxca_core::matrix::AwardStats {
+            vucc: vec![dxca_core::matrix::VuccBandCount {
+                band: "6M".into(),
+                worked: 120,
+                confirmed: 100,
+            }],
+            was_worked: 30,
+            was_confirmed: 20,
+            was_missing: states.clone(),
+            was_by_band: vec![],
+            was_by_mode: vec![],
+            triple_play: 3,
+            triple_play_missing: vec![],
+            iota_worked: 40,
+            iota_confirmed: 30,
+            waz_worked: 38,
+            waz_confirmed: 35,
+            waz_missing: (1..=40).collect(),
+            waz_by_mode: vec![],
+            waz_needed_by_mode: vec![],
+            waz_by_band: vec![],
+            marathon: vec![],
+        };
+        let stats = MatrixStats {
+            dxcc_worked: 300,
+            dxcc_confirmed: 280,
+            slots_worked: 1500,
+            slots_confirmed: 1200,
+            challenge_worked: 1100,
+            challenge_confirmed: 900,
+        };
+        let v = user_payload(
+            1,
+            "VU2CPL",
+            Some(stats),
+            Some(stats),
+            Some(award),
+            None,
+            &[],
+        )
+        .expect("a loaded log publishes");
+        assert_eq!(v["award_stats"]["was_worked"], 30);
+        assert_eq!(v["award_stats"]["vucc"][0]["band"], "6M");
+        assert!(v["award_stats"].get("was_missing").is_none());
+        assert!(v["award_stats"].get("waz_missing").is_none());
+        assert!(v.to_string().len() < 4 * 1024);
     }
 
     #[test]
