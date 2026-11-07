@@ -62,7 +62,7 @@
       {
         name: '', host: '192.168.1.169', port: 1883, username: '', password: '',
         topic: 'shack/dxca/spots', client_id: 'dxca',
-        sources: [], unfiltered: false, enabled: true,
+        sources: [], unfiltered: false, enabled: true, status: false,
       },
     ]);
 
@@ -88,6 +88,15 @@
         <b>Sources</b>: <b>All</b> publishes every source; pick names to
         publish only those.
       </span>
+      <span class="para">
+        <b>Status</b> also publishes two <i>retained</i> topics every minute,
+        for dashboards such as Home Assistant:
+        <code>&lt;topic&gt;/status</code> (cluster nodes online, spots per
+        source) and <code>&lt;topic&gt;/status/&lt;CALL&gt;</code> for each
+        account with a ClubLog log (DXCC worked/confirmed, slots, awards,
+        the last five alerts). Those are every account's log totals, sent to
+        this broker — which is why it is off until ticked.
+      </span>
     </HelpTip>
   </h2>
   <div class="editor-scroll">
@@ -99,7 +108,7 @@
                thing in the table, and pushed Unf / On / ✕ off the edge. -->
           <th>Name</th><th>Broker</th><th>Port</th><th>User</th><th>Password</th>
           <th>Base topic</th><th>Client ID</th>
-          <th>Unf</th><th>On</th><th></th>
+          <th>Unf</th><th>Status</th><th>On</th><th></th>
         </tr>
       </thead>
       <tbody>
@@ -114,11 +123,12 @@
             <td><input bind:value={d.topic} class="host" /></td>
             <td><input bind:value={d.client_id} class="port" /></td>
             <td><input type="checkbox" bind:checked={d.unfiltered} title="Unfiltered: bypass dedupe" /></td>
+            <td><input type="checkbox" bind:checked={d.status} title="Status: retained cluster health + per-account totals and recent alerts under <topic>/status" /></td>
             <td><input type="checkbox" bind:checked={d.enabled} /></td>
             <td><button class="drop" title="Remove" onclick={() => dropRow(i)}>✕</button></td>
           </tr>
           <tr class="srcrow">
-            <td colspan="10">
+            <td colspan="11">
               <ChipGroup
                 label="Sources"
                 options={opts}
