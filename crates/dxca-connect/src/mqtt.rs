@@ -162,6 +162,14 @@ impl MqttCounters {
     }
 }
 
+fn thread_name() -> String {
+    std::thread::current()
+        .name()
+        .and_then(|n| n.strip_prefix("dxca-mqtt-"))
+        .unwrap_or("?")
+        .to_string()
+}
+
 pub struct MqttPublisher {
     dests: Vec<Live>,
 }
@@ -177,6 +185,13 @@ impl MqttPublisher {
             .map(|cfg| {
                 let mut opts = MqttOptions::new(cfg.client_id.clone(), cfg.host.clone(), cfg.port);
                 opts.set_keep_alive(Duration::from_secs(30));
+                // rumqttc's default outgoing cap is 10 KB, and a publish over
+                // it is a *connection* error: the client drops the broker and
+                // reconnects, losing spots too. Spots are a few hundred
+                // bytes; the cap is raised so a status payload that grows
+                // with a log can never take the connection down. Mosquitto's
+                // own default limit is far above this.
+                opts.set_max_packet_size(256 * 1024, 256 * 1024);
                 // Empty username means anonymous; the shack broker has
                 // required credentials since 2026-08-21, so this is normally
                 // set.
@@ -190,9 +205,30 @@ impl MqttPublisher {
                 std::thread::Builder::new()
                     .name(format!("dxca-mqtt-{}", cfg.name))
                     .spawn(move || {
-                        for _event in connection.iter() {
-                            // Draining is the point; the events themselves
-                            // are acks and pings we do not act on.
+                        // Draining is the point; the events themselves
+                        // are acks and pings we do not act on. Errors are
+                        // logged once per outage, not once per retry, so a
+                        // broker that is down for a day does not fill the
+                        // log — but a destination that keeps failing is no
+                        // longer silent.
+                        let name = thread_name();
+                        let mut failing = false;
+                        for event in connection.iter() {
+                            match event {
+                                Ok(_) => {
+                                    if failing {
+                                        eprintln!("dxca: mqtt {name}: connected again");
+                                        failing = false;
+                                    }
+                                }
+                                Err(e) => {
+                                    if !failing {
+                                        eprintln!("dxca: mqtt {name}: {e}");
+                                        failing = true;
+                                    }
+                                    std::thread::sleep(Duration::from_secs(1));
+                                }
+                            }
                         }
                     })
                     .expect("spawn mqtt event loop");

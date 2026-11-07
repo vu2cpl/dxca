@@ -25,6 +25,14 @@ project — joint work by Basil Thomas W6BT, Vinod VU3ESV, and Ram VU3RDD
 
 ## Status
 
+**v2.24.1** (2026-11-07): **the per-account status topic now arrives.** In
+v2.24.0 it carried the full award breakdown (every chase list and Marathon
+year), which for a real log was over the MQTT client's 10 KB packet limit, so
+the client dropped the broker every minute and `<base>/status/<CALL>` never
+got through. The award part is now the counts only, the packet limit is
+raised to 256 KB, and an MQTT destination that keeps failing is logged once
+per outage instead of failing silently. Nothing to change in settings.
+
 **v2.24.0** (2026-11-07): **MQTT status topics, for dashboards.** An MQTT
 destination gains a **Status** tick. With it on, DXCA publishes retained
 `<base>/status` (cluster nodes online, spots per source) and
@@ -1744,7 +1752,7 @@ Tick **Status** on a destination and DXCA also publishes two kinds of
 | topic | payload |
 |---|---|
 | `<base>/status` | `{"ts":…,"version":"2.24.0","clusters_online":8,"clusters_total":9,"clusters":{"VU2CPL":{"connected":true,"state":"Live","spot_count":…,"last_spot_unix":…},…},"spots_per_source":{…}}` |
-| `<base>/status/<CALL>` | `{"ts":…,"callsign":"VU2CPL","stats":{"dxcc_worked":…,"dxcc_confirmed":…,"slots_worked":…,"slots_confirmed":…,"challenge_worked":…,"challenge_confirmed":…},"stats_current":{…},"award_stats":{…},"qso_count":…,"last_refresh_unix":…,"recent_alerts":[{"time_unix":…,"callsign":"3Y0J","band":"20M","mode":"FT8","dxcc_name":"Bouvet","level":"new_dxcc"},…]}` |
+| `<base>/status/<CALL>` | `{"ts":…,"callsign":"VU2CPL","stats":{"dxcc_worked":…,"dxcc_confirmed":…,"slots_worked":…,"slots_confirmed":…,"challenge_worked":…,"challenge_confirmed":…},"stats_current":{…},"award_stats":{"was_worked":…,"was_confirmed":…,"triple_play":…,"waz_worked":…,"waz_confirmed":…,"iota_worked":…,"iota_confirmed":…,"vucc":[{"band":"6M","worked":…,"confirmed":…}]},"qso_count":…,"last_refresh_unix":…,"recent_alerts":[{"time_unix":…,"callsign":"3Y0J","band":"20M","mode":"FT8","dxcc_name":"Bouvet","level":"new_dxcc"},…]}` |
 
 These are the numbers on the Spots screen's station card and the last five
 rows of **Alerts**, for a dashboard (Home Assistant, Node-RED) that should

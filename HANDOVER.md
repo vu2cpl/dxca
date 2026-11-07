@@ -120,7 +120,9 @@
 </details>
 
 **Created:** 2026-08-26 · **Last updated:** 2026-11-07 · **Status:**
-**v2.24.0 — retained MQTT status topics for dashboards (`<base>/status` and
+**v2.24.1 — the per-account status topic carries award counts only (v2.24.0's
+full award breakdown overran rumqttc's 10 KB packet cap and the topic never
+arrived); MQTT event-loop errors are now logged.** Before that: **v2.24.0 — retained MQTT status topics for dashboards (`<base>/status` and
 `<base>/status/<CALL>`, opt-in per destination with the new Status tick), so
 Home Assistant's DXCC card reads DXCA without a stored password. Merged as
 #14 and tagged 2026-11-07** (*Session 2026-11-07*). Before that:
@@ -787,6 +789,18 @@ and strips wildcards. Settings › MQTT gains a **Status** column.
   release ignores the stored `status` key.
 
 Merged as #14 (squash `c1b603c`) and released as **v2.24.0**.
+
+**v2.24.1, same day: the account topic never arrived.** With Status ticked on
+.109 the server topic showed up in HA (7/8 clusters) but `status/VU2CPL` did
+not. `award_stats` went out whole — WAS and Triple Play worklists, zone lists,
+every Marathon year — and for VU2CPL's log that is over rumqttc's default
+10 KB outgoing cap. rumqttc treats an oversized publish as a connection error,
+so the client dropped the broker every minute (spots on that destination too)
+and, because the event loop discarded errors, said nothing. Fixed three ways:
+`award_summary` keeps the counts and drops the lists (test pins a long-list
+payload under 4 KB); `set_max_packet_size(256 KB)` on every destination; the
+event loop logs the first error of an outage and the reconnect, and sleeps 1 s
+between retries instead of spinning.
 
 ## Session 2026-10-28 — a spot with no callsign goes nowhere
 
