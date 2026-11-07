@@ -122,7 +122,9 @@
 **Created:** 2026-08-26 · **Last updated:** 2026-11-07 · **Status:**
 **v2.24.1 — the per-account status topic carries award counts only (v2.24.0's
 full award breakdown overran rumqttc's 10 KB packet cap and the topic never
-arrived); MQTT event-loop errors are now logged.** Before that: **v2.24.0 — retained MQTT status topics for dashboards (`<base>/status` and
+arrived); MQTT event-loop errors are now logged. Released with the Windows
+zip and on .109 2026-11-07, Status ticked there and feeding HA's DXCC card;
+Windows `.170` and the three remote Pis are still on v2.23.4.** Before that: **v2.24.0 — retained MQTT status topics for dashboards (`<base>/status` and
 `<base>/status/<CALL>`, opt-in per destination with the new Status tick), so
 Home Assistant's DXCC card reads DXCA without a stored password. Merged as
 #14 and tagged 2026-11-07** (*Session 2026-11-07*). Before that:
@@ -801,6 +803,17 @@ and, because the event loop discarded errors, said nothing. Fixed three ways:
 payload under 4 KB); `set_max_packet_size(256 KB)` on every destination; the
 event loop logs the first error of an outage and the reconnect, and sleeps 1 s
 between retries instead of spinning.
+
+Released as **v2.24.1** with the Windows zip and deployed the same day:
+
+| Host | Result (2026-11-07) |
+|---|---|
+| `.109` (Docker) | 2.23.4 → 2.24.0 → **2.24.1**: `docker-deploy.sh`, smoke test OK both times. Manoj added the MQTT destination `shack` (`192.168.1.169:1883`, `svc`, base `shack/dxca/spots`, all sources, Status ticked). Log: `MQTT destinations connected (1)`. HA reads 320 entities, 4357 slots (4108 confirmed), 6/8 clusters right after the restart, and the last five alerts. |
+| `.170` (Windows), adersh, vu2oy, vu2wj | Still on v2.23.4: not asked for this round. Status is opt-in, so they see no change until they update and tick it. |
+
+HA side (in `vu2cpl-shack`): `ha_discovery_publish.py`'s DXCC device reads the
+two status topics (`expire_after: 180`), and the Radio dashboard's DXCC card
+was rewritten for them.
 
 ## Session 2026-10-28 — a spot with no callsign goes nowhere
 
