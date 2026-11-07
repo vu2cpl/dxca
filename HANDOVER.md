@@ -119,7 +119,11 @@
 
 </details>
 
-**Created:** 2026-08-26 · **Last updated:** 2026-10-28 · **Status:**
+**Created:** 2026-08-26 · **Last updated:** 2026-11-07 · **Status:**
+**v2.24.0 — retained MQTT status topics for dashboards (`<base>/status` and
+`<base>/status/<CALL>`, opt-in per destination with the new Status tick), so
+Home Assistant's DXCC card reads DXCA without a stored password. Merged as
+#14 and tagged 2026-11-07** (*Session 2026-11-07*). Before that:
 **v2.23.4 — a spot with no callsign goes to no destination (v2.23.3 stopped
 only the unresolved-hash decode; `CQ EU` from VU2OY's Aggregator and free
 text still went out as `UNKNOWN`), plus webpki-roots 1.0.10. Tagged and
@@ -781,6 +785,8 @@ and strips wildcards. Settings › MQTT gains a **Status** column.
   carries what a tile shows.
 - *Rollback-safe:* `MqttDestination` is not `deny_unknown_fields`, so an older
   release ignores the stored `status` key.
+
+Merged as #14 (squash `c1b603c`) and released as **v2.24.0**.
 
 ## Session 2026-10-28 — a spot with no callsign goes nowhere
 
