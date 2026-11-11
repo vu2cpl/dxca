@@ -4,7 +4,7 @@
 //!
 //! - Happy path: login prompt → call → welcome → spot line. The node goes
 //!   proven-Live, the spot lands in the ring as a synthetic decode, and
-//!   the telnet feed carries a `DX de <node>:` line. A spot whose call
+//!   the telnet feed carries a `DX de <spotter>:` line. A spot whose call
 //!   cell is not a call (`EU`) is kept in the ring and relayed nowhere.
 //! - Flaky node: accepts TCP, streams banner noise, never acks. The
 //!   session must stay UNPROVEN (yellow, 1.x honest-status), the auth
@@ -106,8 +106,9 @@ async fn cluster_spot_flows_to_ring_and_telnet() {
     assert_eq!(spot.mode, "FT8");
     assert_eq!(spot.dial_frequency_hz, 14_074_000);
 
-    // And the telnet feed carries the re-formatted line, node as spotter,
-    // with nothing ahead of it for the `EU` spot.
+    // And the telnet feed carries the re-formatted line naming the real
+    // spotter, not the node that relayed it (since v2.24.3: RUMlog showed
+    // the node for every spot), with nothing ahead of it for the `EU` spot.
     let mut got = String::new();
     let mut buf = [0u8; 1024];
     while !got.contains("K1JT") {
@@ -118,7 +119,8 @@ async fn cluster_spot_flows_to_ring_and_telnet() {
         assert!(n > 0);
         got.push_str(&String::from_utf8_lossy(&buf[..n]));
     }
-    assert!(got.contains("DX de VE7CC:"), "got: {got:?}");
+    assert!(got.contains("DX de W3LPL:"), "got: {got:?}");
+    assert!(!got.contains("DX de VE7CC:"), "got: {got:?}");
     assert!(!got.contains("UNKNOWN"), "got: {got:?}");
 }
 

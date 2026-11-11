@@ -17,14 +17,28 @@ pub fn format(spot: &Spot) -> String {
         .unwrap_or_else(|| "UNKNOWN".into())
         .to_uppercase();
 
+    // Who heard it. A relayed cluster spot names its real spotter, with a
+    // skimmer's `-#` put back the way DX-Spider and RBN send it, so a
+    // logger shows `W3LPL-#` rather than the node that relayed it. Until
+    // v2.24.3 this was always the source name, and RUMlog's "DX de" read
+    // N2WQ-2 or W3LPL for every spot that node passed on (Manoj: "real de
+    // is missing"). The node is still in the payload's `source_name` and
+    // the web UI. A local decode has no spotter: its source is the receiver.
+    //
     // The spotter must be a SINGLE token: source names like "MSHV 2237"
     // would tokenise as two fields and shove the freq into the call slot.
-    let cleaned: String = spot
-        .source_name
-        .to_uppercase()
-        .chars()
-        .filter(|c| c.is_ascii_uppercase() || c.is_ascii_digit() || *c == '/' || *c == '-')
-        .collect();
+    // The `-#` goes on after cleaning, since `#` is not a callsign character.
+    let clean = |s: &str| -> String {
+        s.to_uppercase()
+            .chars()
+            .filter(|c| c.is_ascii_uppercase() || c.is_ascii_digit() || *c == '/' || *c == '-')
+            .collect()
+    };
+    let cleaned = match spot.spotter.as_deref().map(clean) {
+        Some(call) if !call.is_empty() && spot.is_skimmer => format!("{call}-#"),
+        Some(call) if !call.is_empty() => call,
+        _ => clean(&spot.source_name),
+    };
     let raw = if cleaned.is_empty() {
         "NOCALL".to_string()
     } else {
@@ -217,6 +231,33 @@ mod tests {
         let line = format(&decoded(14_074_000, 1758, -7, "FT8", "CQ K1JT FN20"));
         assert!(line.contains(" 14074.0 "), "got {line}");
         assert!(!line.contains("14075.8"), "got {line}");
+    }
+
+    /// RUMlog showed the relaying node after `DX de` for every cluster
+    /// spot. A relayed spot names its real spotter, a skimmer with `-#`;
+    /// a local decode keeps its source name.
+    #[test]
+    fn de_names_the_real_spotter() {
+        let line = format(&relayed("FT8 -10 dB"));
+        assert_eq!(line.split_whitespace().nth(2), Some("W3LPL:"), "{line}");
+
+        let skim = Spot {
+            spotter: Some("vu2xyz".into()),
+            is_skimmer: true,
+            ..relayed("")
+        };
+        let line = format(&skim);
+        assert_eq!(line.split_whitespace().nth(2), Some("VU2XYZ-#:"), "{line}");
+
+        let blank = Spot {
+            spotter: Some("  ".into()),
+            ..relayed("")
+        };
+        let line = format(&blank);
+        assert_eq!(line.split_whitespace().nth(2), Some("MSHV2333:"), "{line}");
+
+        let local = format(&decoded(14_074_000, 1758, -7, "FT8", "CQ K1JT FN20"));
+        assert_eq!(local.split_whitespace().nth(2), Some("MSHV2333:"));
     }
 
     /// A relayed spot's comment goes out verbatim, whatever its shape, and

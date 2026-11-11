@@ -2,9 +2,10 @@
 *For continuation in a new Claude session*
 
 <details>
-<summary><b>Contents</b> — 113 sections. Jump; do not read straight through. Looking for one fact? grep the heading text rather than opening the file.</summary>
+<summary><b>Contents</b> — 114 sections. Jump; do not read straight through. Looking for one fact? grep the heading text rather than opening the file.</summary>
 
 - [What this is](#what-this-is)
+- [Session 2026-11-11 (later) — DX de names the real spotter](#session-2026-11-11-later--dx-de-names-the-real-spotter)
 - [Session 2026-11-11 — WSPR spots never alert](#session-2026-11-11--wspr-spots-never-alert)
 - [Session 2026-11-07 — retained MQTT status for dashboards](#session-2026-11-07--retained-mqtt-status-for-dashboards)
 - [Session 2026-10-28 — a spot with no callsign goes nowhere](#session-2026-10-28--a-spot-with-no-callsign-goes-nowhere)
@@ -121,6 +122,9 @@
 </details>
 
 **Created:** 2026-08-26 · **Last updated:** 2026-11-11 · **Status:**
+**v2.24.3 — the outgoing spot line's `DX de` names the real spotter (skimmer
+with `-#`), not the relaying node. Released with the Windows zip 2026-11-11;
+deploy record in *Session 2026-11-11 (later)*.** Before that:
 **v2.24.2 — WSPR and FST4W spots never raise an alert (one-way beacon modes,
 the station cannot be worked). Released with the Windows zip and on .109
 2026-11-11, then Windows `.170` and vu2oy the same day; adersh and vu2wj
@@ -760,6 +764,24 @@ and the web GUI's design system from the same repo's
 2026-09-22**, having run on noderedpi4 (192.168.1.169) from the 2026-08-27
 cutover. noderedpi4's install is stopped and disabled, kept as the
 rollback. The 1.x macOS app is the retained fallback (maintenance mode).
+
+## Session 2026-11-11 (later) — DX de names the real spotter
+
+**Why.** Manoj: *"on rumlog, i dont get the spotters call … dx de says the
+clustername. real de is missing"*. `format::format` built the `DX de` token
+from `spot.source_name`, so every relayed spot named the node (N2WQ-2,
+W3LPL, VU24DX). `Spot::spotter` has carried the real spotter since
+2026-08-28, but only the web UI and alert history used it.
+
+**What.** `format` uses `spot.spotter` when it is non-empty, with `-#`
+appended for `is_skimmer` (DX-Spider / RBN wire form), and falls back to
+`source_name` for local decodes. Cleaning runs before the `-#` goes on,
+since `#` is not in the allowed set. One line feeds telnet, UDP broadcast
+and MQTT `cluster_line`, so all three change; the payloads still carry
+`source_name` separately. Test: `de_names_the_real_spotter`.
+
+**Rejected.** A setting to choose node or spotter: no logger wants the
+node there, it is not what any real cluster sends.
 
 ## Session 2026-11-11 — WSPR spots never alert
 

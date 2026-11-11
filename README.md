@@ -25,6 +25,15 @@ project — joint work by Basil Thomas W6BT, Vinod VU3ESV, and Ram VU3RDD
 
 ## Status
 
+**v2.24.3** (2026-11-11): **loggers see who actually spotted the DX.** The
+spot line DXCA sends to telnet clients (RUMlog and the like), UDP and MQTT put
+the cluster node after `DX de` for every relayed spot, so RUMlog showed
+`N2WQ-2` or `W3LPL` instead of the station that heard the DX. A relayed spot
+now carries its real spotter, and a skimmer keeps its `-#` the way DX-Spider
+and RBN send it (`DX de VU2XYZ-#:`). Spots decoded here (MSHV, WSJT-X, JTDX)
+still name their source. The node is still shown in DXCA's spot list and
+alert history. Nothing to change in settings.
+
 **v2.24.2** (2026-11-11): **WSPR spots never raise an alert.** WSPR and
 FST4W are one-way beacon modes: the station cannot be worked, so a spot in
 one is propagation data, not a catch. They were scored as ordinary DATA
@@ -1136,6 +1145,11 @@ grid when the message was a CQ, and the DX station's audio offset last.
 offset in the comment relative to it — up to v2.22.3 the line carried dial
 + offset (14075.8) and no offset, so a logger tuned the rig off the FT8
 dial. (New in v2.23.0.)
+
+**After `DX de` comes the station that heard the DX.** For a relayed spot
+that is its real spotter, a skimmer with `-#` (`DX de W3LPL-#:`), not the
+node that relayed it; for a decoder's spot it is the source name, as above.
+(New in v2.24.3; before that every relayed spot named the node.)
 
 The search box above the table filters on **either** — type a DX callsign to
 follow one station, or a spotter to see everything one skimmer is hearing.
