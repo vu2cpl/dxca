@@ -124,8 +124,8 @@
 **Created:** 2026-08-26 · **Last updated:** 2026-11-11 · **Status:**
 **v2.24.3 — the outgoing spot line's `DX de` names the real spotter (skimmer
 with `-#`), not the relaying node. Released with the Windows zip 2026-11-11
-and on .109, Windows `.170` and vu2oy the same day; adersh and vu2wj still on
-v2.23.4 (ssh timed out, tunnels down).** Before that:
+and on .109, Windows `.170`, vu2oy and adersh the same day; vu2wj still on
+v2.23.4 (tunnel down).** Before that:
 **v2.24.2 — WSPR and FST4W spots never raise an alert (one-way beacon modes,
 the station cannot be worked). Released with the Windows zip and on .109
 2026-11-11, then Windows `.170` and vu2oy the same day; adersh and vu2wj
@@ -786,9 +786,10 @@ node there, it is not what any real cluster sends.
 
 **Shipped** as v2.24.3: .109 (`docker-deploy.sh`), live telnet checked
 (`DX de DF6JF:` on a relayed spot, `DX de JTDX:` on local decodes), then
-Windows `.170` and vu2oy, all three answering 2.24.3. adersh `.151` and
-vu2wj `.201` timed out on ssh again; deploy both (they jump straight from
-v2.23.4) when the tunnels are up.
+Windows `.170` and vu2oy, all three answering 2.24.3. adersh `.151` once
+Manoj raised `Adersh_vu2cpl` (2.24.3, 5/5 nodes Live). vu2wj `.201` still
+on v2.23.4: `sudo wg-quick down Shaji_vu2wj; sudo wg-quick up Shaji_vu2wj`,
+then `pi-deploy.sh --no-seed vu2wj@192.168.1.201`.
 
 ## Session 2026-11-11 — WSPR spots never alert
 
