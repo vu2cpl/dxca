@@ -25,6 +25,15 @@ project — joint work by Basil Thomas W6BT, Vinod VU3ESV, and Ram VU3RDD
 
 ## Status
 
+**v2.24.2** (2026-11-11): **WSPR spots never raise an alert.** WSPR and
+FST4W are one-way beacon modes: the station cannot be worked, so a spot in
+one is propagation data, not a catch. They were scored as ordinary DATA
+spots and could fire New DXCC, New Band, New Mode or award alerts to every
+destination. They now get no alert level, the same as a beacon callsign. The
+spot still shows in the list with its country. A spot with no mode on a WSPR
+frequency (14.0956 and the rest) is covered too. Nothing to change in
+settings.
+
 **v2.24.1** (2026-11-07): **the per-account status topic now arrives.** In
 v2.24.0 it carried the full award breakdown (every chase list and Marathon
 year), which for a real log was over the MQTT client's 10 KB packet limit, so

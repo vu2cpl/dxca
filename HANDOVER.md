@@ -2,9 +2,10 @@
 *For continuation in a new Claude session*
 
 <details>
-<summary><b>Contents</b> — 112 sections. Jump; do not read straight through. Looking for one fact? grep the heading text rather than opening the file.</summary>
+<summary><b>Contents</b> — 113 sections. Jump; do not read straight through. Looking for one fact? grep the heading text rather than opening the file.</summary>
 
 - [What this is](#what-this-is)
+- [Session 2026-11-11 — WSPR spots never alert](#session-2026-11-11--wspr-spots-never-alert)
 - [Session 2026-11-07 — retained MQTT status for dashboards](#session-2026-11-07--retained-mqtt-status-for-dashboards)
 - [Session 2026-10-28 — a spot with no callsign goes nowhere](#session-2026-10-28--a-spot-with-no-callsign-goes-nowhere)
 - [Session 2026-10-23 — webpki-roots 1.0.10 drops the eMudhra root](#session-2026-10-23--webpki-roots-1010-drops-the-emudhra-root)
@@ -119,7 +120,10 @@
 
 </details>
 
-**Created:** 2026-08-26 · **Last updated:** 2026-11-07 · **Status:**
+**Created:** 2026-08-26 · **Last updated:** 2026-11-11 · **Status:**
+**v2.24.2 — WSPR and FST4W spots never raise an alert (one-way beacon modes,
+the station cannot be worked). Released with the Windows zip and on .109
+2026-11-11; Windows `.170` and the three remote Pis not updated.** Before that:
 **v2.24.1 — the per-account status topic carries award counts only (v2.24.0's
 full award breakdown overran rumqttc's 10 KB packet cap and the topic never
 arrived); MQTT event-loop errors are now logged. Released with the Windows
@@ -755,6 +759,32 @@ and the web GUI's design system from the same repo's
 2026-09-22**, having run on noderedpi4 (192.168.1.169) from the 2026-08-27
 cutover. noderedpi4's install is stopped and disabled, kept as the
 rollback. The 1.x macOS app is the retained fallback (maintenance mode).
+
+## Session 2026-11-11 — WSPR spots never alert
+
+**Why.** Manoj: *"wspr spots are getting into alerts. it should not"*. WSPR
+spots (some cluster feeds carry them) were scored as
+ordinary DATA spots by `AlertClassifier::classify_spot`, so a WSPR station
+could fire New DXCC / New Band / New Mode or an award alert to Telegram and
+every other destination. The classifier already refused beacon *callsigns*
+(ClubLog adif=0, the NCDXF list) but had no notion of a beacon *mode*.
+
+**What.** `modes::is_beacon_mode` (`WSPR*`, `FST4W`); `classify_spot`
+returns level `None`, no award, right after resolving the entity, so the
+spot list still names the country. Keyed on the spot's resolved mode, which
+`modes::resolve` fills from the band plan when a spot reports none, so a
+bare spot on 14.0956 is covered. `is_beacon` stays false: that flag means a
+beacon callsign and drives the "Beacon" label. Tests:
+`wspr_spots_never_alert`, `wspr_and_fst4w_are_beacon_modes`.
+
+**Rejected.** Dropping WSPR spots at ingest: they are still useful
+propagation data in the spot list, and the problem was only the alert. A
+per-user mode filter setting: nobody wants a WSPR alert, so it is a rule,
+not an option, and a new `NotifyUserConfig` field would carry the serde-
+default and rollback overhead for nothing.
+
+**Shipped** as v2.24.2, released with the Windows zip, deployed to .109
+(`docker-deploy.sh`). The other hosts are not updated.
 
 ## Session 2026-11-07 — retained MQTT status for dashboards
 
