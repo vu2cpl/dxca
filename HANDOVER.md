@@ -123,7 +123,8 @@
 **Created:** 2026-08-26 · **Last updated:** 2026-11-11 · **Status:**
 **v2.24.2 — WSPR and FST4W spots never raise an alert (one-way beacon modes,
 the station cannot be worked). Released with the Windows zip and on .109
-2026-11-11; Windows `.170` and the three remote Pis not updated.** Before that:
+2026-11-11, then Windows `.170` and vu2oy the same day; adersh and vu2wj
+not updated (ssh timed out, tunnels down) and still on v2.23.4.** Before that:
 **v2.24.1 — the per-account status topic carries award counts only (v2.24.0's
 full award breakdown overran rumqttc's 10 KB packet cap and the topic never
 arrived); MQTT event-loop errors are now logged. Released with the Windows
@@ -784,7 +785,10 @@ not an option, and a new `NotifyUserConfig` field would carry the serde-
 default and rollback overhead for nothing.
 
 **Shipped** as v2.24.2, released with the Windows zip, deployed to .109
-(`docker-deploy.sh`). The other hosts are not updated.
+(`docker-deploy.sh`), then Windows `.170` (`win-deploy.sh`) and vu2oy
+(`pi-deploy.sh --no-seed`), each answering 2.24.2 on `/api/status`.
+adersh `.151` and vu2wj `.201` timed out on ssh (tunnels down); both still
+on v2.23.4, deploy them when Manoj brings the tunnels up.
 
 ## Session 2026-11-07 — retained MQTT status for dashboards
 
