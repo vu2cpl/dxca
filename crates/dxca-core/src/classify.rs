@@ -406,6 +406,21 @@ impl AlertClassifier<'_> {
         let dxcc_name = dxcc_id
             .and_then(|id| self.resolver.entity(id))
             .map(|e| e.name.clone());
+
+        // WSPR / FST4W are one-way beacon modes: the station cannot be
+        // worked, so no level and no award. The entity still resolves so
+        // the spot list can name it.
+        if modes::is_beacon_mode(mode) {
+            return Classification {
+                level: AlertLevel::None,
+                dxcc_id,
+                dxcc_name,
+                band,
+                is_beacon: false,
+                award_ref: None,
+            };
+        }
+
         // FT8/FT4/JT*/RTTY/… → DATA: digital modes share one award slot.
         // `None` when the mode is genuinely unknown — `canonical` would call
         // that DATA, which is how phone spots from comment-only cluster
@@ -1360,5 +1375,27 @@ mod tests {
         assert_eq!(c.dxcc_id, Some(324));
         // Empty call → nothing.
         assert_eq!(classify("", 14.074, "FT8", &cfg).level, AlertLevel::None);
+    }
+
+    /// WSPR spots reached the Telegram alerts as New Band/Mode catches.
+    /// The same station on FT8 alerts; on WSPR or FST4W it must not.
+    #[test]
+    fn wspr_spots_never_alert() {
+        let cfg = awards_config();
+        assert_ne!(
+            classify("VU2ZZZ", 21.074, "FT8", &cfg).level,
+            AlertLevel::None
+        );
+        for mode in ["WSPR", "wspr", "FST4W"] {
+            let c = classify("VU2ZZZ", 21.0946, mode, &cfg);
+            assert_eq!(c.level, AlertLevel::None, "{mode}");
+            assert_eq!(c.dxcc_id, Some(324), "entity still resolves");
+            assert_eq!(c.award_ref, None);
+        }
+        // A new entity on WSPR is still no alert.
+        assert_eq!(
+            classify("4X1ZZ", 14.0956, "WSPR", &cfg).level,
+            AlertLevel::None
+        );
     }
 }

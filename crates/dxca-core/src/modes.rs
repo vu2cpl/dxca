@@ -74,6 +74,15 @@ pub fn canonical(raw: &str) -> &'static str {
     }
 }
 
+/// Beacon-only modes: WSPR and FST4W are one-way propagation beacons, so a
+/// station spotted in one cannot be worked and must never raise an alert.
+/// The spot itself still shows; it just never becomes a New DXCC/Band/Mode
+/// or award catch. `WSPR` prefix also covers `WSPR-15` style names.
+pub fn is_beacon_mode(raw: &str) -> bool {
+    let mode = raw.trim().to_ascii_uppercase();
+    mode.starts_with("WSPR") || mode == "FST4W"
+}
+
 /// Award bucket, or `None` when the mode is unknown. The spot path uses this
 /// so an unknown mode is never silently scored as DATA.
 pub fn canonical_opt(raw: &str) -> Option<&'static str> {
@@ -85,7 +94,18 @@ pub fn canonical_opt(raw: &str) -> Option<&'static str> {
 
 #[cfg(test)]
 mod tests {
-    use super::{canonical, from_decoder_char};
+    use super::{canonical, from_decoder_char, is_beacon_mode};
+
+    #[test]
+    fn wspr_and_fst4w_are_beacon_modes() {
+        assert!(is_beacon_mode("WSPR"));
+        assert!(is_beacon_mode(" wspr "));
+        assert!(is_beacon_mode("WSPR-15"));
+        assert!(is_beacon_mode("FST4W"));
+        assert!(!is_beacon_mode("FST4"));
+        assert!(!is_beacon_mode("FT8"));
+        assert!(!is_beacon_mode(""));
+    }
 
     /// The Windows/WSJT-X report: local spots showed no usable mode because
     /// the decoder sends a marker character, not a name.
