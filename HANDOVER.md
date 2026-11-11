@@ -123,8 +123,9 @@
 
 **Created:** 2026-08-26 · **Last updated:** 2026-11-11 · **Status:**
 **v2.24.3 — the outgoing spot line's `DX de` names the real spotter (skimmer
-with `-#`), not the relaying node. Released with the Windows zip 2026-11-11;
-deploy record in *Session 2026-11-11 (later)*.** Before that:
+with `-#`), not the relaying node. Released with the Windows zip 2026-11-11
+and on .109, Windows `.170` and vu2oy the same day; adersh and vu2wj still on
+v2.23.4 (ssh timed out, tunnels down).** Before that:
 **v2.24.2 — WSPR and FST4W spots never raise an alert (one-way beacon modes,
 the station cannot be worked). Released with the Windows zip and on .109
 2026-11-11, then Windows `.170` and vu2oy the same day; adersh and vu2wj
@@ -782,6 +783,12 @@ and MQTT `cluster_line`, so all three change; the payloads still carry
 
 **Rejected.** A setting to choose node or spotter: no logger wants the
 node there, it is not what any real cluster sends.
+
+**Shipped** as v2.24.3: .109 (`docker-deploy.sh`), live telnet checked
+(`DX de DF6JF:` on a relayed spot, `DX de JTDX:` on local decodes), then
+Windows `.170` and vu2oy, all three answering 2.24.3. adersh `.151` and
+vu2wj `.201` timed out on ssh again; deploy both (they jump straight from
+v2.23.4) when the tunnels are up.
 
 ## Session 2026-11-11 — WSPR spots never alert
 
