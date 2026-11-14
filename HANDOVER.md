@@ -125,8 +125,8 @@
 **Created:** 2026-08-26 · **Last updated:** 2026-11-15 · **Status:**
 **v2.24.4 — no callsign starts with Q, so free text such as `QSLCARD73`
 (VU2OY's Aggregator, reported by VU2PTT) is no longer relayed. Merged as
-#16 and released with the Windows zip 2026-11-15; not deployed to the
-fleet yet.** Before that:
+#16 and released with the Windows zip 2026-11-15, and on all five hosts the
+same day: .109, Windows `.170`, vu2oy, adersh, vu2wj.** Before that:
 **v2.24.3 — the outgoing spot line's `DX de` names the real spotter (skimmer
 with `-#`), not the relaying node. Released with the Windows zip 2026-11-11
 and on all five hosts the same day: .109, Windows `.170`, vu2oy, adersh,
@@ -805,9 +805,15 @@ exposed: their parser only takes calls from structured messages.
   junk without a Q keeps coming. Costs one FT8 cycle of delay and per-call
   state. Held back until it is needed.
 
-**Shipped** as v2.24.4 (#16), released with the Windows zip 2026-11-15.
-Not deployed to the fleet in that pass. VU2PTT gets it from the release
-page (his update banner points there). The Mac app's `looksLikeCallsign`,
+**Shipped** as v2.24.4 (#16), released with the Windows zip 2026-11-15
+(asset downloaded back: identical to the build, 40-byte ClubLog key in the
+exe). Deployed the same day on Manoj's word: .109 (`docker-deploy.sh`,
+smoke test OK, 7/8 nodes as before, KST2Mac the one down; live telnet
+carried relayed spots and the logger reconnected), Windows `.170`
+(`win-deploy.sh`, 2/2), vu2oy (`pi-deploy.sh --no-seed`, 4/4), then adersh
+(5/5) and vu2wj (3/3) once Manoj raised `Adersh_vu2cpl` and `Shaji_vu2wj`.
+`fleet-status.py` shows all five on 2.24.4. VU2PTT gets it from the
+release page (his update banner points there). The Mac app's `looksLikeCallsign`,
 the same function, gets the rule in its own release; see its HANDOVER.
 
 ## Session 2026-11-11 (later) — DX de names the real spotter
