@@ -25,6 +25,15 @@ project — joint work by Basil Thomas W6BT, Vinod VU3ESV, and Ram VU3RDD
 
 ## Status
 
+**v2.24.4** (2026-11-15): **free text starting with Q is no longer spotted
+as a call.** VU2OY's RBN Aggregator put the FT8 free text `QSLCARD73` where
+the callsign goes, and DXCA passed it on, so loggers showed it as a spot with
+"unknown location". No callsign starts with Q (that series is reserved for
+the Q-codes), so such a spot now stays in DXCA's spot list and goes nowhere
+else, like any other spot with no callsign. A Q later in a call is normal
+(`4X1KS/QRP`). See [A spot with no callsign goes nowhere](#a-spot-with-no-callsign-goes-nowhere).
+Nothing to change in settings.
+
 **v2.24.3** (2026-11-11): **loggers see who actually spotted the DX.** The
 spot line DXCA sends to telnet clients (RUMlog and the like), UDP and MQTT put
 the cluster node after `DX de` for every relayed spot, so RUMlog showed

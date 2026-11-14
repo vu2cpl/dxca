@@ -123,9 +123,10 @@
 </details>
 
 **Created:** 2026-08-26 · **Last updated:** 2026-11-15 · **Status:**
-**Pending, not released: no callsign starts with Q (`QSLCARD73` from
-VU2OY's Aggregator), on branch `fix/q-is-never-a-callsign`; to ship as
-v2.24.4.** Released before that:
+**v2.24.4 — no callsign starts with Q, so free text such as `QSLCARD73`
+(VU2OY's Aggregator, reported by VU2PTT) is no longer relayed. Merged as
+#16 and released with the Windows zip 2026-11-15; not deployed to the
+fleet yet.** Before that:
 **v2.24.3 — the outgoing spot line's `DX de` names the real spotter (skimmer
 with `-#`), not the relaying node. Released with the Windows zip 2026-11-11
 and on all five hosts the same day: .109, Windows `.170`, vu2oy, adersh,
@@ -804,10 +805,10 @@ exposed: their parser only takes calls from structured messages.
   junk without a Q keeps coming. Costs one FT8 cycle of delay and per-call
   state. Held back until it is needed.
 
-**Not done.** The Mac app's `looksLikeCallsign` is the same function and
-does not have the Q rule. Not released or deployed yet. VU2PTT only gets it
-from a published release; meanwhile his blacklist can take `QSLCARD73`
-(exact match only).
+**Shipped** as v2.24.4 (#16), released with the Windows zip 2026-11-15.
+Not deployed to the fleet in that pass. VU2PTT gets it from the release
+page (his update banner points there). The Mac app's `looksLikeCallsign`,
+the same function, gets the rule in its own release; see its HANDOVER.
 
 ## Session 2026-11-11 (later) — DX de names the real spotter
 
