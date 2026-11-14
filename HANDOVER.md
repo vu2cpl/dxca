@@ -2,9 +2,10 @@
 *For continuation in a new Claude session*
 
 <details>
-<summary><b>Contents</b> — 114 sections. Jump; do not read straight through. Looking for one fact? grep the heading text rather than opening the file.</summary>
+<summary><b>Contents</b> — 115 sections. Jump; do not read straight through. Looking for one fact? grep the heading text rather than opening the file.</summary>
 
 - [What this is](#what-this-is)
+- [Session 2026-11-15 — no callsign starts with Q](#session-2026-11-15--no-callsign-starts-with-q)
 - [Session 2026-11-11 (later) — DX de names the real spotter](#session-2026-11-11-later--dx-de-names-the-real-spotter)
 - [Session 2026-11-11 — WSPR spots never alert](#session-2026-11-11--wspr-spots-never-alert)
 - [Session 2026-11-07 — retained MQTT status for dashboards](#session-2026-11-07--retained-mqtt-status-for-dashboards)
@@ -121,7 +122,10 @@
 
 </details>
 
-**Created:** 2026-08-26 · **Last updated:** 2026-11-11 · **Status:**
+**Created:** 2026-08-26 · **Last updated:** 2026-11-15 · **Status:**
+**Pending, not released: no callsign starts with Q (`QSLCARD73` from
+VU2OY's Aggregator), on branch `fix/q-is-never-a-callsign`; to ship as
+v2.24.4.** Released before that:
 **v2.24.3 — the outgoing spot line's `DX de` names the real spotter (skimmer
 with `-#`), not the relaying node. Released with the Windows zip 2026-11-11
 and on all five hosts the same day: .109, Windows `.170`, vu2oy, adersh,
@@ -765,6 +769,45 @@ and the web GUI's design system from the same repo's
 2026-09-22**, having run on noderedpi4 (192.168.1.169) from the 2026-08-27
 cutover. noderedpi4's install is stopped and disabled, kept as the
 rollback. The 1.x macOS app is the retained fallback (maintenance mode).
+
+## Session 2026-11-15 — no callsign starts with Q
+
+**Why.** VU2PTT (an outside DXCA user, VU2OY's RBN as a node he calls
+`OYRBN`) reported `QSLCARD73` on his bandmap: 21075.2, `-8 dB 1190 FT8`,
+"Unknown location". It is FT8 free text that VU2OY's Aggregator put in the
+call cell. A relayed spot's call is checked only by `looks_like_callsign`
+(through the synthetic `CQ <call>` message), and `QSLCARD73` passed it:
+3–11 letters and digits with at least one of each. The second non-call from
+that feed after `EU` (2026-10-28).
+
+**What.** `looks_like_callsign` rejects anything whose first character is Q.
+The ITU never allocates the Q series; it is the Q-codes'. Checked on
+2026-11-12 and again 2026-11-15 against 234,467 LoTW calls, every ClubLog
+`<call>` exception and every ClubLog prefix: none starts with Q. Only the
+first character: `4X1KS/QRP` and `3E2QRP` are real and still pass. Such a
+spot now takes the v2.23.4 path: kept in the Spots table, no alert, no
+destination. Tests: `nothing_starting_with_q_is_a_callsign` and a
+`CQ QSLCARD73` row in `dx_call_extraction_table`. Local decodes were never
+exposed: their parser only takes calls from structured messages.
+
+**Rejected** (each tested on the same 261k calls):
+- *Ends in a letter* (ITU RR 19.68): loses real special-event calls ending
+  in digits: BV100, TM380, LM1814, VX7150, LA4O100.
+- *At most two letters before the first digit*: loses Austria's OEM…
+  calls.
+- *Must resolve to a DXCC entity*: wires the cty resolver into the spot
+  path and must switch off when cty is not loaded; catches little beyond Q
+  (`TNX4QSO` resolves, TN being Congo).
+- *Known calls only* (LoTW / SCP): drops new licensees, DXpeditions and
+  special-event calls, the spots most wanted.
+- *Skimmer spots seen twice before relaying*: the stronger general fix if
+  junk without a Q keeps coming. Costs one FT8 cycle of delay and per-call
+  state. Held back until it is needed.
+
+**Not done.** The Mac app's `looksLikeCallsign` is the same function and
+does not have the Q rule. Not released or deployed yet. VU2PTT only gets it
+from a published release; meanwhile his blacklist can take `QSLCARD73`
+(exact match only).
 
 ## Session 2026-11-11 (later) — DX de names the real spotter
 

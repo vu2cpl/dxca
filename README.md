@@ -1439,6 +1439,12 @@ Spots table, raises no alert, and is sent to no destination. The verbatim
 UDP passthrough is unchanged, so a logger fed by it still sees the raw
 decode.
 
+*Since v2.24.4*, anything starting with **Q** is not a call either. No
+callsign starts with Q: that series is reserved for the Q-codes. The same
+Aggregator spotted the FT8 free text `QSLCARD73`, which has letters and
+digits like a call, so it reached loggers as a spot with "unknown location".
+A Q later in the call is normal (`4X1KS/QRP`, `3E2QRP`).
+
 ### Health alerts
 
 Two optional Telegram alerts under **Settings › My station › Telegram**, both
