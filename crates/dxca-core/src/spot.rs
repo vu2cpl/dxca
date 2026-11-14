@@ -344,8 +344,8 @@ fn strip_call_decoration(s: &str) -> String {
 }
 
 /// Reject FT8 tokens that aren't callsigns — RR73/73/TU…, signal reports
-/// (R+05, -12), 4-char Maidenhead grids (LL85), placeholders. Swift
-/// `looksLikeCallsign` verbatim.
+/// (R+05, -12), 4-char Maidenhead grids (LL85), placeholders, and anything
+/// starting with Q. Swift `looksLikeCallsign` plus the Q rule.
 fn looks_like_callsign(s: &str) -> bool {
     let upper = s.to_uppercase();
     let core = upper.trim_start_matches('<').trim_end_matches('>');
@@ -354,6 +354,19 @@ fn looks_like_callsign(s: &str) -> bool {
     }
     let len = core.chars().count();
     if !(3..=11).contains(&len) {
+        return false;
+    }
+
+    // No callsign starts with Q: the ITU has never allocated the Q series,
+    // which belongs to the Q-codes. Free text a skimmer spotted as a call
+    // passed every other check here — `QSLCARD73` from VU2OY's RBN
+    // Aggregator (VU2PTT's bandmap, 2026-11-12) is nine letters and digits
+    // with at least one of each. First character only: `4X1KS/QRP` and
+    // `3E2QRP` are real. None of 234k LoTW calls or ClubLog's prefixes and
+    // exceptions starts with Q. Stricter shapes were tried on those lists
+    // and dropped: "ends in a letter" loses BV100, TM380 and LM1814, "at
+    // most two letters before the digit" loses Austria's OEM… calls.
+    if core.starts_with('Q') {
         return false;
     }
 
@@ -425,12 +438,27 @@ mod tests {
             ("K1JT LL85", Some("K1JT")),         // slot 1 is a grid → fall back to slot 0
             ("<...> W9HT/VP9 RRR", Some("W9HT/VP9")), // hashed addressee, full sender
             ("CQ TEST", None),
-            ("CQ EU", None), // VU2OY's Aggregator spotted `EU` as a call
+            ("CQ EU", None),        // VU2OY's Aggregator spotted `EU` as a call
+            ("CQ QSLCARD73", None), // …and `QSLCARD73`, free text
             ("TNX 73 GL", None),
             ("73", None),
         ];
         for (msg, want) in cases {
             assert_eq!(spot(msg).dx_callsign().as_deref(), want, "message: {msg:?}");
+        }
+    }
+
+    /// FT8 free text spotted as a call. VU2OY's RBN Aggregator put
+    /// `QSLCARD73` in the call cell (VU2PTT's bandmap, 2026-11-12, "Unknown
+    /// location"), and it was relayed because it is letters and digits with
+    /// one of each. No callsign starts with Q; a Q further in is ordinary.
+    #[test]
+    fn nothing_starting_with_q_is_a_callsign() {
+        for tok in ["QSLCARD73", "<QSLCARD73>", "qslcard73", "QSO4U", "QRP5W"] {
+            assert!(!looks_like_callsign(tok), "accepted {tok:?}");
+        }
+        for tok in ["4X1KS/QRP", "3E2QRP", "4L6QL", "VU2CPL"] {
+            assert!(looks_like_callsign(tok), "rejected {tok:?}");
         }
     }
 
