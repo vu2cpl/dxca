@@ -2,7 +2,7 @@
 *For continuation in a new Claude session*
 
 <details>
-<summary><b>Contents</b> — 115 sections. Jump; do not read straight through. Looking for one fact? grep the heading text rather than opening the file.</summary>
+<summary><b>Contents</b> — 116 sections. Jump; do not read straight through. Looking for one fact? grep the heading text rather than opening the file.</summary>
 
 - [What this is](#what-this-is)
 - [Session 2026-11-20 — skimmer spotters go out without `-#`](#session-2026-11-20--skimmer-spotters-go-out-without--)
@@ -126,7 +126,9 @@
 **Created:** 2026-08-26 · **Last updated:** 2026-11-20 · **Status:**
 **v2.24.5 — skimmer spotters go out as a bare call, without `-#` (RUMlog
 showed `OR5Z-`); numbered calls such as `N2WQ-2` unchanged. Released with
-the Windows zip 2026-11-20; rollout to the five hosts below.** Before that:
+the Windows zip 2026-11-20 and on four hosts the same day: .109, Windows
+`.170`, vu2oy, adersh. vu2wj `.201` unreachable (tunnel down), still on
+v2.24.4: deploy it when Manoj brings it up.** Before that:
 **v2.24.4 — no callsign starts with Q, so free text such as `QSLCARD73`
 (VU2OY's Aggregator, reported by VU2PTT) is no longer relayed. Merged as
 #16 and released with the Windows zip 2026-11-15, and on all five hosts the
@@ -795,7 +797,15 @@ MQTT payload still know. Test: `de_names_the_real_spotter` now pins
 from a hand-typed one; the parser keys `spotter_is_skimmer` on `-#`. No
 such chain is known in the fleet.
 
-**Released** as v2.24.5 with the Windows zip, 2026-11-20.
+**Shipped** as v2.24.5 with the Windows zip, 2026-11-20. .109
+(`docker-deploy.sh`, smoke test OK) first; its live telnet then carried 80
+lines in 40 s with no `-#` (skimmer `VU24DX:`, numbered `VU2OY-9:` kept).
+Then Windows `.170` (`win-deploy.sh`), vu2oy and adersh (`pi-deploy.sh
+--no-seed`). `fleet-status.py`: all four on 2.24.5, nodes .109 7/8 (KST2Mac
+down as before, bridge not running), `.170` 2/2, vu2oy 4/4, adersh 5/5.
+**Open:** vu2wj `.201` was unreachable (no ping, network unreachable on
+:7580), still on v2.24.4. Deploy with `deploy/pi-deploy.sh --no-seed
+vu2wj@192.168.1.201` once Manoj brings its tunnel up.
 
 ## Session 2026-11-15 — no callsign starts with Q
 
