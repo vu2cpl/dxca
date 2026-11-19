@@ -124,6 +124,9 @@
 </details>
 
 **Created:** 2026-08-26 · **Last updated:** 2026-11-20 · **Status:**
+**v2.24.5 — skimmer spotters go out as a bare call, without `-#` (RUMlog
+showed `OR5Z-`); numbered calls such as `N2WQ-2` unchanged. Released with
+the Windows zip 2026-11-20; rollout to the five hosts below.** Before that:
 **v2.24.4 — no callsign starts with Q, so free text such as `QSLCARD73`
 (VU2OY's Aggregator, reported by VU2PTT) is no longer relayed. Merged as
 #16 and released with the Windows zip 2026-11-15, and on all five hosts the
@@ -792,7 +795,7 @@ MQTT payload still know. Test: `de_names_the_real_spotter` now pins
 from a hand-typed one; the parser keys `spotter_is_skimmer` on `-#`. No
 such chain is known in the fleet.
 
-**Not released yet** at the time of this commit (main is ahead of v2.24.4).
+**Released** as v2.24.5 with the Windows zip, 2026-11-20.
 
 ## Session 2026-11-15 — no callsign starts with Q
 

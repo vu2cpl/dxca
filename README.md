@@ -25,6 +25,14 @@ project — joint work by Basil Thomas W6BT, Vinod VU3ESV, and Ram VU3RDD
 
 ## Status
 
+**v2.24.5** (2026-11-20): **skimmer spotters go out without `-#`.** Since
+v2.24.3 a skimmer's spot went to loggers as `DX de OR5Z-#:`. RUMlog drops the
+`#` and keeps the dash, so its DX Spots window showed `OR5Z-`. A skimmer now
+goes out as its bare call (`DX de OR5Z:`). A numbered call such as `N2WQ-2`
+is a different station and goes out unchanged. DXCA's spot list still marks
+skimmer spots, and the MQTT payload still carries `is_skimmer`. Nothing to
+change in settings.
+
 **v2.24.4** (2026-11-15): **free text starting with Q is no longer spotted
 as a call.** VU2OY's RBN Aggregator put the FT8 free text `QSLCARD73` where
 the callsign goes, and DXCA passed it on, so loggers showed it as a spot with
@@ -1161,8 +1169,8 @@ before that every relayed spot named the node.) A skimmer goes out as its
 bare call, without RBN's `-#`: RUMlog drops the `#` and showed a stray dash
 (`OR5Z-`). A numbered call such as `N2WQ-2` is a different station and goes
 out unchanged. Which spots came from a skimmer is still in the spot list
-(the `#` marker below) and in the MQTT payload's `is_skimmer`. (Since the
-next release after v2.24.4; v2.24.3 and v2.24.4 sent `W3LPL-#`.)
+(the `#` marker below) and in the MQTT payload's `is_skimmer`. (Since
+v2.24.5; v2.24.3 and v2.24.4 sent `W3LPL-#`.)
 
 The search box above the table filters on **either** — type a DX callsign to
 follow one station, or a spotter to see everything one skimmer is hearing.
