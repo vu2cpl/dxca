@@ -1167,7 +1167,8 @@ that is its real spotter (`DX de W3LPL:`), not the node that relayed it;
 for a decoder's spot it is the source name, as above. (New in v2.24.3;
 before that every relayed spot named the node.) A skimmer goes out as its
 bare call, without RBN's `-#`: RUMlog drops the `#` and showed a stray dash
-(`OR5Z-`). A numbered call such as `N2WQ-2` is a different station and goes
+(`OR5Z-`). Any other symbol suffix goes the same way, such as DX-Spider's
+`-@` for a spot entered on the web (`K4TEA-@` goes out as `K4TEA`). A numbered call such as `N2WQ-2` is a different station and goes
 out unchanged. Which spots came from a skimmer is still in the spot list
 (the `#` marker below) and in the MQTT payload's `is_skimmer`. (Since
 v2.24.5; v2.24.3 and v2.24.4 sent `W3LPL-#`.)

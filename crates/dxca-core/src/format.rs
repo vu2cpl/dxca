@@ -30,13 +30,21 @@ pub fn format(spot: &Spot) -> String {
     // `N2WQ-2` are a different station and pass through unchanged. The
     // skimmer flag stays in the payload (`is_skimmer`) and the web UI.
     //
+    // Any other symbol suffix goes too: DX-Spider marks a web-entered spot
+    // `K4TEA-@`, and cleaning dropped the `@` but kept the dash, so RUMlog
+    // still read `K4TEA-` after v2.24.5 (Manoj, 2026-11-20: "still comes
+    // back"). So a dash left dangling at the end after cleaning is trimmed,
+    // whatever symbol followed it.
+    //
     // The spotter must be a SINGLE token: source names like "MSHV 2237"
     // would tokenise as two fields and shove the freq into the call slot.
     let clean = |s: &str| -> String {
-        s.to_uppercase()
+        let kept: String = s
+            .to_uppercase()
             .chars()
             .filter(|c| c.is_ascii_uppercase() || c.is_ascii_digit() || *c == '/' || *c == '-')
-            .collect()
+            .collect();
+        kept.trim_end_matches('-').to_string()
     };
     let cleaned = match spot.spotter.as_deref().map(clean) {
         Some(call) if !call.is_empty() => call,
@@ -259,6 +267,17 @@ mod tests {
         };
         let line = format(&numbered);
         assert_eq!(line.split_whitespace().nth(2), Some("N2WQ-2:"), "{line}");
+
+        // DX-Spider's web-entry mark `-@` (and any other symbol suffix)
+        // must not leave a dangling dash either.
+        for raw in ["k4tea-@", "k4tea-#", "k4tea-"] {
+            let web = Spot {
+                spotter: Some(raw.into()),
+                ..relayed("")
+            };
+            let line = format(&web);
+            assert_eq!(line.split_whitespace().nth(2), Some("K4TEA:"), "{raw}: {line}");
+        }
 
         let blank = Spot {
             spotter: Some("  ".into()),

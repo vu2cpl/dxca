@@ -2,9 +2,10 @@
 *For continuation in a new Claude session*
 
 <details>
-<summary><b>Contents</b> — 116 sections. Jump; do not read straight through. Looking for one fact? grep the heading text rather than opening the file.</summary>
+<summary><b>Contents</b> — 117 sections. Jump; do not read straight through. Looking for one fact? grep the heading text rather than opening the file.</summary>
 
 - [What this is](#what-this-is)
+- [Session 2026-11-20 (later) — `-@` spotters left a dash too](#session-2026-11-20-later---spotters-left-a-dash-too)
 - [Session 2026-11-20 — skimmer spotters go out without `-#`](#session-2026-11-20--skimmer-spotters-go-out-without--)
 - [Session 2026-11-15 — no callsign starts with Q](#session-2026-11-15--no-callsign-starts-with-q)
 - [Session 2026-11-11 (later) — DX de names the real spotter](#session-2026-11-11-later--dx-de-names-the-real-spotter)
@@ -124,6 +125,8 @@
 </details>
 
 **Created:** 2026-08-26 · **Last updated:** 2026-11-20 · **Status:**
+**main (unreleased): a spotter with any symbol suffix (`K4TEA-@`, DX-Spider's
+web-entry mark) goes out without the dangling dash; see the session below.**
 **v2.24.5 — skimmer spotters go out as a bare call, without `-#` (RUMlog
 showed `OR5Z-`); numbered calls such as `N2WQ-2` unchanged. Released with
 the Windows zip 2026-11-20 and on four hosts the same day: .109, Windows
@@ -776,6 +779,27 @@ and the web GUI's design system from the same repo's
 2026-09-22**, having run on noderedpi4 (192.168.1.169) from the 2026-08-27
 cutover. noderedpi4's install is stopped and disabled, kept as the
 rollback. The 1.x macOS app is the retained fallback (maintenance mode).
+
+## Session 2026-11-20 (later) — `-@` spotters left a dash too
+
+**Why.** Manoj, the next day with a RUMlog screenshot: the `-` "still comes
+back" (`K4TEA-` spotting 3X4U on 3522). .109 was on v2.24.5 and its feed on
+:7575 carried no `-#` in a 60 s capture. The spot list showed the real cause:
+the spotter came in from node N2WQ-2 as `K4TEA-@`, DX-Spider's mark for a
+spot entered on the web (`ON6DX-@` too). v2.24.5 only removed the `-#` path;
+`clean` drops `@` as a non-call character but kept the dash.
+
+**What.** `format::format`'s `clean` trims any trailing `-` after
+filtering, so `-@`, `-#` or any other symbol suffix leaves the bare call.
+Numbered calls (`N2WQ-2`) are unchanged. Test `de_names_the_real_spotter`
+now pins `k4tea-@`, `k4tea-#` and `k4tea-` to `K4TEA:`.
+
+**Not a bug (do not chase again):** in RUMlog's DX Spots window a trailing
+`.` after the DX call (`3X4U.`) means LoTW user and a trailing `,` means
+eQSL user. RUMlog adds them.
+
+**Not released yet**: main is ahead of v2.24.5. Needs a release and the
+five-host rollout (vu2wj `.201` still on v2.24.4).
 
 ## Session 2026-11-20 — skimmer spotters go out without `-#`
 
