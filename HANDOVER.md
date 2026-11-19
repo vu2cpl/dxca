@@ -127,7 +127,9 @@
 **Created:** 2026-08-26 · **Last updated:** 2026-11-20 · **Status:**
 **v2.24.6 — a spotter with any symbol suffix (`K4TEA-@`, DX-Spider's
 web-entry mark) goes out without the dangling dash. Released with the
-Windows zip 2026-11-20; rollout below.** Before that:
+Windows zip 2026-11-20 and on four hosts the same day: .109, Windows
+`.170`, vu2oy, adersh. vu2wj `.201` unreachable again, still on v2.24.4:
+deploy it when Manoj brings it up.** Before that:
 **v2.24.5 — skimmer spotters go out as a bare call, without `-#` (RUMlog
 showed `OR5Z-`); numbered calls such as `N2WQ-2` unchanged. Released with
 the Windows zip 2026-11-20 and on four hosts the same day: .109, Windows
@@ -799,7 +801,16 @@ now pins `k4tea-@`, `k4tea-#` and `k4tea-` to `K4TEA:`.
 `.` after the DX call (`3X4U.`) means LoTW user and a trailing `,` means
 eQSL user. RUMlog adds them.
 
-**Released** as v2.24.6 with the Windows zip, 2026-11-20.
+**Shipped** as v2.24.6 with the Windows zip, 2026-11-20. .109
+(`docker-deploy.sh`, smoke test OK) first; its :7575 feed (the port RUMlog
+uses) then carried 202 spots in 120 s with no spotter ending in `-`, a live
+`PY3EK-@` went out as `DX de PY3EK:`, and `VU2OY-9:` kept its number. Then
+Windows `.170` (`win-deploy.sh`), vu2oy and adersh (`pi-deploy.sh
+--no-seed`). `fleet-status.py`: .109 8/8, `.170` 2/2, vu2oy 4/4, adersh 5/5,
+all v2.24.6. **Open:** vu2wj `.201` still unreachable (no ping, :7580 timed
+out) and on v2.24.4. Deploy with `deploy/pi-deploy.sh --no-seed
+vu2wj@192.168.1.201` once its tunnel is up; that brings it straight to
+v2.24.6.
 
 ## Session 2026-11-20 — skimmer spotters go out without `-#`
 
