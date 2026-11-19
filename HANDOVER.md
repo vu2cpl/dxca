@@ -5,7 +5,7 @@
 <summary><b>Contents</b> — 117 sections. Jump; do not read straight through. Looking for one fact? grep the heading text rather than opening the file.</summary>
 
 - [What this is](#what-this-is)
-- [Session 2026-11-20 (later) — `-@` spotters left a dash too](#session-2026-11-20-later---spotters-left-a-dash-too)
+- [Session 2026-11-20 (later) — `-@` spotters left a dash too](#session-2026-11-20-later----spotters-left-a-dash-too)
 - [Session 2026-11-20 — skimmer spotters go out without `-#`](#session-2026-11-20--skimmer-spotters-go-out-without--)
 - [Session 2026-11-15 — no callsign starts with Q](#session-2026-11-15--no-callsign-starts-with-q)
 - [Session 2026-11-11 (later) — DX de names the real spotter](#session-2026-11-11-later--dx-de-names-the-real-spotter)
@@ -125,8 +125,9 @@
 </details>
 
 **Created:** 2026-08-26 · **Last updated:** 2026-11-20 · **Status:**
-**main (unreleased): a spotter with any symbol suffix (`K4TEA-@`, DX-Spider's
-web-entry mark) goes out without the dangling dash; see the session below.**
+**v2.24.6 — a spotter with any symbol suffix (`K4TEA-@`, DX-Spider's
+web-entry mark) goes out without the dangling dash. Released with the
+Windows zip 2026-11-20; rollout below.** Before that:
 **v2.24.5 — skimmer spotters go out as a bare call, without `-#` (RUMlog
 showed `OR5Z-`); numbered calls such as `N2WQ-2` unchanged. Released with
 the Windows zip 2026-11-20 and on four hosts the same day: .109, Windows
@@ -798,8 +799,7 @@ now pins `k4tea-@`, `k4tea-#` and `k4tea-` to `K4TEA:`.
 `.` after the DX call (`3X4U.`) means LoTW user and a trailing `,` means
 eQSL user. RUMlog adds them.
 
-**Not released yet**: main is ahead of v2.24.5. Needs a release and the
-five-host rollout (vu2wj `.201` still on v2.24.4).
+**Released** as v2.24.6 with the Windows zip, 2026-11-20.
 
 ## Session 2026-11-20 — skimmer spotters go out without `-#`
 

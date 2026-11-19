@@ -25,6 +25,14 @@ project — joint work by Basil Thomas W6BT, Vinod VU3ESV, and Ram VU3RDD
 
 ## Status
 
+**v2.24.6** (2026-11-20): **no stray dash after any spotter.** v2.24.5 fixed
+skimmer `-#`, but a spot entered on a DX-Spider web page arrives as
+`K4TEA-@`. DXCA dropped the `@` and kept the dash, so RUMlog still showed
+`K4TEA-`. A dash left at the end of the spotter is now removed, whatever
+symbol followed it. Numbered calls such as `N2WQ-2` go out unchanged.
+Nothing to change in settings. (In RUMlog, a `.` or `,` after the DX call is
+RUMlog's own LoTW or eQSL mark, not from DXCA.)
+
 **v2.24.5** (2026-11-20): **skimmer spotters go out without `-#`.** Since
 v2.24.3 a skimmer's spot went to loggers as `DX de OR5Z-#:`. RUMlog drops the
 `#` and keeps the dash, so its DX Spots window showed `OR5Z-`. A skimmer now
@@ -1171,7 +1179,7 @@ bare call, without RBN's `-#`: RUMlog drops the `#` and showed a stray dash
 `-@` for a spot entered on the web (`K4TEA-@` goes out as `K4TEA`). A numbered call such as `N2WQ-2` is a different station and goes
 out unchanged. Which spots came from a skimmer is still in the spot list
 (the `#` marker below) and in the MQTT payload's `is_skimmer`. (Since
-v2.24.5; v2.24.3 and v2.24.4 sent `W3LPL-#`.)
+v2.24.5, and `-@` since v2.24.6; v2.24.3 and v2.24.4 sent `W3LPL-#`.)
 
 The search box above the table filters on **either** — type a DX callsign to
 follow one station, or a spotter to see everything one skimmer is hearing.
