@@ -5,6 +5,7 @@
 <summary><b>Contents</b> — 115 sections. Jump; do not read straight through. Looking for one fact? grep the heading text rather than opening the file.</summary>
 
 - [What this is](#what-this-is)
+- [Session 2026-11-20 — skimmer spotters go out without `-#`](#session-2026-11-20--skimmer-spotters-go-out-without--)
 - [Session 2026-11-15 — no callsign starts with Q](#session-2026-11-15--no-callsign-starts-with-q)
 - [Session 2026-11-11 (later) — DX de names the real spotter](#session-2026-11-11-later--dx-de-names-the-real-spotter)
 - [Session 2026-11-11 — WSPR spots never alert](#session-2026-11-11--wspr-spots-never-alert)
@@ -122,7 +123,7 @@
 
 </details>
 
-**Created:** 2026-08-26 · **Last updated:** 2026-11-15 · **Status:**
+**Created:** 2026-08-26 · **Last updated:** 2026-11-20 · **Status:**
 **v2.24.4 — no callsign starts with Q, so free text such as `QSLCARD73`
 (VU2OY's Aggregator, reported by VU2PTT) is no longer relayed. Merged as
 #16 and released with the Windows zip 2026-11-15, and on all five hosts the
@@ -770,6 +771,28 @@ and the web GUI's design system from the same repo's
 2026-09-22**, having run on noderedpi4 (192.168.1.169) from the 2026-08-27
 cutover. noderedpi4's install is stopped and disabled, kept as the
 rollback. The 1.x macOS app is the retained fallback (maintenance mode).
+
+## Session 2026-11-20 — skimmer spotters go out without `-#`
+
+**Why.** Manoj, from RUMlog's DX Spots window: *"spots on rumlog are coming
+with -"*. v2.24.3 sent a skimmer spotter as `OR5Z-#`; RUMlog drops the `#`
+and keeps the dash, so skimmer rows read `OR5Z-`, `IZ4DYQ-`, `AK5B-`. (The
+trailing `.` on DX calls in that window is RUMlog's own LoTW-user mark; a
+`,` marks eQSL. Not from DXCA.)
+
+**What.** `format::format` sends a skimmer spotter as its bare call. A
+numbered suffix (`N2WQ-2`) is part of the call and goes out unchanged
+(Manoj: "drop it if its -# not -2 -3"). `is_skimmer` is untouched, so the
+web UI's `#` marker, Manual only, the Telegram human-only switch and the
+MQTT payload still know. Test: `de_names_the_real_spotter` now pins
+`VU2XYZ:` for a skimmer and `N2WQ-2:` for a numbered call.
+
+**Trade-off.** Anything that reads DXCA's own telnet feed as a cluster
+(another DXCA adding this one as a node) can no longer tell a skimmer spot
+from a hand-typed one; the parser keys `spotter_is_skimmer` on `-#`. No
+such chain is known in the fleet.
+
+**Not released yet** at the time of this commit (main is ahead of v2.24.4).
 
 ## Session 2026-11-15 — no callsign starts with Q
 

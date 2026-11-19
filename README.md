@@ -38,8 +38,7 @@ Nothing to change in settings.
 spot line DXCA sends to telnet clients (RUMlog and the like), UDP and MQTT put
 the cluster node after `DX de` for every relayed spot, so RUMlog showed
 `N2WQ-2` or `W3LPL` instead of the station that heard the DX. A relayed spot
-now carries its real spotter, and a skimmer keeps its `-#` the way DX-Spider
-and RBN send it (`DX de VU2XYZ-#:`). Spots decoded here (MSHV, WSJT-X, JTDX)
+now carries its real spotter (`DX de VU2XYZ:`). Spots decoded here (MSHV, WSJT-X, JTDX)
 still name their source. The node is still shown in DXCA's spot list and
 alert history. Nothing to change in settings.
 
@@ -1156,9 +1155,14 @@ offset in the comment relative to it — up to v2.22.3 the line carried dial
 dial. (New in v2.23.0.)
 
 **After `DX de` comes the station that heard the DX.** For a relayed spot
-that is its real spotter, a skimmer with `-#` (`DX de W3LPL-#:`), not the
-node that relayed it; for a decoder's spot it is the source name, as above.
-(New in v2.24.3; before that every relayed spot named the node.)
+that is its real spotter (`DX de W3LPL:`), not the node that relayed it;
+for a decoder's spot it is the source name, as above. (New in v2.24.3;
+before that every relayed spot named the node.) A skimmer goes out as its
+bare call, without RBN's `-#`: RUMlog drops the `#` and showed a stray dash
+(`OR5Z-`). A numbered call such as `N2WQ-2` is a different station and goes
+out unchanged. Which spots came from a skimmer is still in the spot list
+(the `#` marker below) and in the MQTT payload's `is_skimmer`. (Since the
+next release after v2.24.4; v2.24.3 and v2.24.4 sent `W3LPL-#`.)
 
 The search box above the table filters on **either** — type a DX callsign to
 follow one station, or a spotter to see everything one skimmer is hearing.

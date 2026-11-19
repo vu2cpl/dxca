@@ -17,17 +17,21 @@ pub fn format(spot: &Spot) -> String {
         .unwrap_or_else(|| "UNKNOWN".into())
         .to_uppercase();
 
-    // Who heard it. A relayed cluster spot names its real spotter, with a
-    // skimmer's `-#` put back the way DX-Spider and RBN send it, so a
-    // logger shows `W3LPL-#` rather than the node that relayed it. Until
-    // v2.24.3 this was always the source name, and RUMlog's "DX de" read
-    // N2WQ-2 or W3LPL for every spot that node passed on (Manoj: "real de
-    // is missing"). The node is still in the payload's `source_name` and
-    // the web UI. A local decode has no spotter: its source is the receiver.
+    // Who heard it. A relayed cluster spot names its real spotter rather
+    // than the node that relayed it. Until v2.24.3 this was always the
+    // source name, and RUMlog's "DX de" read N2WQ-2 or W3LPL for every spot
+    // that node passed on (Manoj: "real de is missing"). The node is still
+    // in the payload's `source_name` and the web UI. A local decode has no
+    // spotter: its source is the receiver.
+    //
+    // A skimmer goes out as its bare call, without RBN's `-#`. v2.24.3 put
+    // the `-#` back and RUMlog shows it as `OR5Z-` (it drops the `#` and
+    // keeps the dash). Manoj, 2026-11-20: drop it. Numbered suffixes like
+    // `N2WQ-2` are a different station and pass through unchanged. The
+    // skimmer flag stays in the payload (`is_skimmer`) and the web UI.
     //
     // The spotter must be a SINGLE token: source names like "MSHV 2237"
     // would tokenise as two fields and shove the freq into the call slot.
-    // The `-#` goes on after cleaning, since `#` is not a callsign character.
     let clean = |s: &str| -> String {
         s.to_uppercase()
             .chars()
@@ -35,7 +39,6 @@ pub fn format(spot: &Spot) -> String {
             .collect()
     };
     let cleaned = match spot.spotter.as_deref().map(clean) {
-        Some(call) if !call.is_empty() && spot.is_skimmer => format!("{call}-#"),
         Some(call) if !call.is_empty() => call,
         _ => clean(&spot.source_name),
     };
@@ -234,8 +237,9 @@ mod tests {
     }
 
     /// RUMlog showed the relaying node after `DX de` for every cluster
-    /// spot. A relayed spot names its real spotter, a skimmer with `-#`;
-    /// a local decode keeps its source name.
+    /// spot. A relayed spot names its real spotter, a skimmer as its bare
+    /// call (RUMlog showed `-#` as a stray `-`), a numbered call such as
+    /// `N2WQ-2` unchanged; a local decode keeps its source name.
     #[test]
     fn de_names_the_real_spotter() {
         let line = format(&relayed("FT8 -10 dB"));
@@ -247,7 +251,14 @@ mod tests {
             ..relayed("")
         };
         let line = format(&skim);
-        assert_eq!(line.split_whitespace().nth(2), Some("VU2XYZ-#:"), "{line}");
+        assert_eq!(line.split_whitespace().nth(2), Some("VU2XYZ:"), "{line}");
+
+        let numbered = Spot {
+            spotter: Some("n2wq-2".into()),
+            ..relayed("")
+        };
+        let line = format(&numbered);
+        assert_eq!(line.split_whitespace().nth(2), Some("N2WQ-2:"), "{line}");
 
         let blank = Spot {
             spotter: Some("  ".into()),
