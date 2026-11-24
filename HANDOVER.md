@@ -807,10 +807,15 @@ uses) then carried 202 spots in 120 s with no spotter ending in `-`, a live
 `PY3EK-@` went out as `DX de PY3EK:`, and `VU2OY-9:` kept its number. Then
 Windows `.170` (`win-deploy.sh`), vu2oy and adersh (`pi-deploy.sh
 --no-seed`). `fleet-status.py`: .109 8/8, `.170` 2/2, vu2oy 4/4, adersh 5/5,
-all v2.24.6. **Open:** vu2wj `.201` still unreachable (no ping, :7580 timed
-out) and on v2.24.4. Deploy with `deploy/pi-deploy.sh --no-seed
-vu2wj@192.168.1.201` once its tunnel is up; that brings it straight to
-v2.24.6.
+all v2.24.6. vu2wj `.201` was unreachable then: `vu2wj.ddns.net` had no
+address. **Deployed 2026-11-24** once Shaji's DDNS name answered again
+(117.221.183.67). The first `wg-peer-up.sh shaji` failed in `wg addconf`
+("nodename nor servname provided") although `dig` already had the address:
+the Mac's resolver still cached the old NXDOMAIN. `sudo dscacheutil
+-flushcache; sudo killall -HUP mDNSResponder`, then the script again, brought
+the tunnel up. Backups `dxca.rollback-v2.24.4` and `data/dxca.db.pre-v2.24.6`
+(md5 checked), then `pi-deploy.sh --no-seed`. `fleet-status.py`: all five
+hosts on v2.24.6 (.109 8/8, `.170` 2/2, adersh 5/5, vu2wj 3/3, vu2oy 4/4).
 
 ## Session 2026-11-20 — skimmer spotters go out without `-#`
 
