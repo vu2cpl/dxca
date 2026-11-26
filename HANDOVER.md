@@ -5,7 +5,7 @@
 <summary><b>Contents</b> — 117 sections. Jump; do not read straight through. Looking for one fact? grep the heading text rather than opening the file.</summary>
 
 - [What this is](#what-this-is)
-- [Session 2026-11-27 — alert source on the MQTT status topic (2.24.7 on .109, unreleased)](#session-2026-11-27--alert-source-on-the-mqtt-status-topic-2247-on-109-unreleased)
+- [Session 2026-11-27 — alert source on the MQTT status topic (2.24.7 fleet-wide, unreleased)](#session-2026-11-27--alert-source-on-the-mqtt-status-topic-2247-fleet-wide-unreleased)
 - [Session 2026-11-20 (later) — `-@` spotters left a dash too](#session-2026-11-20-later----spotters-left-a-dash-too)
 - [Session 2026-11-20 — skimmer spotters go out without `-#`](#session-2026-11-20--skimmer-spotters-go-out-without--)
 - [Session 2026-11-15 — no callsign starts with Q](#session-2026-11-15--no-callsign-starts-with-q)
@@ -784,7 +784,7 @@ and the web GUI's design system from the same repo's
 cutover. noderedpi4's install is stopped and disabled, kept as the
 rollback. The 1.x macOS app is the retained fallback (maintenance mode).
 
-## Session 2026-11-27 — alert source on the MQTT status topic (2.24.7 on .109, unreleased)
+## Session 2026-11-27 — alert source on the MQTT status topic (2.24.7 fleet-wide, unreleased)
 
 Manoj wanted the shack dashboard's DXCA card (vu2cpl-shack, Vue v63) to
 show where each of the last five alerts came from. `alert_summary` in
@@ -803,10 +803,14 @@ and see no banner, because there is no GitHub release for 2.24.7. Later the
 same night vu2wj `.201` got 2.24.7 too, on Manoj's "and deploy" after
 raising `Shaji_vu2wj` (his DDNS had moved to 59.176.33.57): backups
 `dxca.rollback-v2.24.6` + `dxca.db.pre-v2.24.7` (md5 checked),
-`pi-deploy.sh --no-seed`, 3/3 nodes. So .109 and vu2wj are on 2.24.7;
-`.170`, adersh and vu2oy stay on 2.24.6. **Open:**
-cut the v2.24.7 release (README notes, Windows zip) when there is more to
-ship, then the usual fleet round.
+`pi-deploy.sh --no-seed`, 3/3 nodes. Then, on Manoj's "deploy all three",
+Windows `.170` (`win-deploy.sh`, `dxca.exe.bak` kept), adersh and vu2oy
+(each `dxca.rollback-v2.24.6` + `dxca.db.pre-v2.24.7`, md5 checked,
+`pi-deploy.sh --no-seed`). `fleet-status.py`: **all five on 2.24.7**, .109
+8/8, `.170` 2/2, adersh 5/5, vu2wj 3/3, vu2oy 4/4 (2/4 in the first seconds
+after its restart). **Open:**
+cut the v2.24.7 release (README notes, Windows zip) so the release page
+and VU2PTT catch up; the fleet itself needs no further round.
 
 ## Session 2026-11-20 (later) — `-@` spotters left a dash too
 
