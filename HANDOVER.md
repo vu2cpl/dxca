@@ -5,6 +5,7 @@
 <summary><b>Contents</b> — 117 sections. Jump; do not read straight through. Looking for one fact? grep the heading text rather than opening the file.</summary>
 
 - [What this is](#what-this-is)
+- [Session 2026-11-27 — alert source on the MQTT status topic (unreleased)](#session-2026-11-27--alert-source-on-the-mqtt-status-topic-unreleased)
 - [Session 2026-11-20 (later) — `-@` spotters left a dash too](#session-2026-11-20-later----spotters-left-a-dash-too)
 - [Session 2026-11-20 — skimmer spotters go out without `-#`](#session-2026-11-20--skimmer-spotters-go-out-without--)
 - [Session 2026-11-15 — no callsign starts with Q](#session-2026-11-15--no-callsign-starts-with-q)
@@ -782,6 +783,19 @@ and the web GUI's design system from the same repo's
 2026-09-22**, having run on noderedpi4 (192.168.1.169) from the 2026-08-27
 cutover. noderedpi4's install is stopped and disabled, kept as the
 rollback. The 1.x macOS app is the retained fallback (maintenance mode).
+
+## Session 2026-11-27 — alert source on the MQTT status topic (unreleased)
+
+Manoj wanted the shack dashboard's DXCA card (vu2cpl-shack, Vue v63) to
+show where each of the last five alerts came from. `alert_summary` in
+`statuspub.rs` now adds `source` (node or receiver) and `spotter` (empty
+for local decodes) to each `recent_alerts` entry on
+`shack/dxca/spots/status/<call>`. Five short strings more per message;
+well inside rumqttc's 10 KB limit (see `award_summary`). Test
+`user_payload` pins both fields. **Not released or deployed**:
+`Cargo.toml` is still 2.24.6, so bump before .109 gets it (see the
+deploy notes on trial deploys). The dashboard column stays empty until
+then.
 
 ## Session 2026-11-20 (later) — `-@` spotters left a dash too
 

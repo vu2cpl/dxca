@@ -80,6 +80,10 @@ fn alert_summary(a: &SentAlert) -> serde_json::Value {
         "mode": a.mode,
         "dxcc_name": a.dxcc_name,
         "level": a.level,
+        // Which node or receiver it came in on, and the station that spotted
+        // it when a relaying node named one (empty for local decodes).
+        "source": a.source,
+        "spotter": a.spotter,
     })
 }
 
@@ -322,6 +326,8 @@ mod tests {
         assert_eq!(v["qso_count"], 25_000);
         assert_eq!(v["recent_alerts"][0]["callsign"], "3Y0J");
         assert_eq!(v["recent_alerts"][0]["dxcc_name"], "Bouvet");
+        assert_eq!(v["recent_alerts"][0]["source"], "VU2CPL");
+        assert_eq!(v["recent_alerts"][0]["spotter"], "");
         // Delivery detail stays behind the login.
         assert!(v["recent_alerts"][0].get("error").is_none());
         assert!(v["recent_alerts"][0].get("channels").is_none());
