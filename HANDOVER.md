@@ -799,7 +799,12 @@ wanted the source on the dashboard now). DB copied to
 `dxca.db.pre-v2.24.7` (md5 matched), `docker-deploy.sh`: smoke test OK,
 container restarted on `dxca:2.24.7` (`dxca:2.24.6` kept for rollback),
 MQTT destination connected, 8/8 nodes. The other four hosts stay on 2.24.6
-and see no banner, because there is no GitHub release for 2.24.7. **Open:**
+and see no banner, because there is no GitHub release for 2.24.7. Later the
+same night vu2wj `.201` got 2.24.7 too, on Manoj's "and deploy" after
+raising `Shaji_vu2wj` (his DDNS had moved to 59.176.33.57): backups
+`dxca.rollback-v2.24.6` + `dxca.db.pre-v2.24.7` (md5 checked),
+`pi-deploy.sh --no-seed`, 3/3 nodes. So .109 and vu2wj are on 2.24.7;
+`.170`, adersh and vu2oy stay on 2.24.6. **Open:**
 cut the v2.24.7 release (README notes, Windows zip) when there is more to
 ship, then the usual fleet round.
 
