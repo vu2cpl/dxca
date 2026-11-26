@@ -5,7 +5,7 @@
 <summary><b>Contents</b> — 117 sections. Jump; do not read straight through. Looking for one fact? grep the heading text rather than opening the file.</summary>
 
 - [What this is](#what-this-is)
-- [Session 2026-11-27 — alert source on the MQTT status topic (unreleased)](#session-2026-11-27--alert-source-on-the-mqtt-status-topic-unreleased)
+- [Session 2026-11-27 — alert source on the MQTT status topic (2.24.7 on .109, unreleased)](#session-2026-11-27--alert-source-on-the-mqtt-status-topic-2247-on-109-unreleased)
 - [Session 2026-11-20 (later) — `-@` spotters left a dash too](#session-2026-11-20-later----spotters-left-a-dash-too)
 - [Session 2026-11-20 — skimmer spotters go out without `-#`](#session-2026-11-20--skimmer-spotters-go-out-without--)
 - [Session 2026-11-15 — no callsign starts with Q](#session-2026-11-15--no-callsign-starts-with-q)
@@ -784,7 +784,7 @@ and the web GUI's design system from the same repo's
 cutover. noderedpi4's install is stopped and disabled, kept as the
 rollback. The 1.x macOS app is the retained fallback (maintenance mode).
 
-## Session 2026-11-27 — alert source on the MQTT status topic (unreleased)
+## Session 2026-11-27 — alert source on the MQTT status topic (2.24.7 on .109, unreleased)
 
 Manoj wanted the shack dashboard's DXCA card (vu2cpl-shack, Vue v63) to
 show where each of the last five alerts came from. `alert_summary` in
@@ -792,10 +792,16 @@ show where each of the last five alerts came from. `alert_summary` in
 for local decodes) to each `recent_alerts` entry on
 `shack/dxca/spots/status/<call>`. Five short strings more per message;
 well inside rumqttc's 10 KB limit (see `award_summary`). Test
-`user_payload` pins both fields. **Not released or deployed**:
-`Cargo.toml` is still 2.24.6, so bump before .109 gets it (see the
-deploy notes on trial deploys). The dashboard column stays empty until
-then.
+`user_payload` pins both fields.
+
+**Bumped to 2.24.7 and deployed to .109 only, NOT released** (Manoj
+wanted the source on the dashboard now). DB copied to
+`dxca.db.pre-v2.24.7` (md5 matched), `docker-deploy.sh`: smoke test OK,
+container restarted on `dxca:2.24.7` (`dxca:2.24.6` kept for rollback),
+MQTT destination connected, 8/8 nodes. The other four hosts stay on 2.24.6
+and see no banner, because there is no GitHub release for 2.24.7. **Open:**
+cut the v2.24.7 release (README notes, Windows zip) when there is more to
+ship, then the usual fleet round.
 
 ## Session 2026-11-20 (later) — `-@` spotters left a dash too
 
