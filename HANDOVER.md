@@ -2,10 +2,10 @@
 *For continuation in a new Claude session*
 
 <details>
-<summary><b>Contents</b> — 117 sections. Jump; do not read straight through. Looking for one fact? grep the heading text rather than opening the file.</summary>
+<summary><b>Contents</b> — 118 sections. Jump; do not read straight through. Looking for one fact? grep the heading text rather than opening the file.</summary>
 
 - [What this is](#what-this-is)
-- [Session 2026-11-27 — alert source on the MQTT status topic (2.24.7 fleet-wide, unreleased)](#session-2026-11-27--alert-source-on-the-mqtt-status-topic-2247-fleet-wide-unreleased)
+- [Session 2026-11-27 — alert source on the MQTT status topic (v2.24.7)](#session-2026-11-27--alert-source-on-the-mqtt-status-topic-v2247)
 - [Session 2026-11-20 (later) — `-@` spotters left a dash too](#session-2026-11-20-later----spotters-left-a-dash-too)
 - [Session 2026-11-20 — skimmer spotters go out without `-#`](#session-2026-11-20--skimmer-spotters-go-out-without--)
 - [Session 2026-11-15 — no callsign starts with Q](#session-2026-11-15--no-callsign-starts-with-q)
@@ -125,7 +125,10 @@
 
 </details>
 
-**Created:** 2026-08-26 · **Last updated:** 2026-11-20 · **Status:**
+**Created:** 2026-08-26 · **Last updated:** 2026-11-27 · **Status:**
+**v2.24.7 — each alert on the MQTT status topic carries `source` and
+`spotter`. Released with the Windows zip 2026-11-27; all five hosts were
+already on it (see the 2026-11-27 session).** Before that:
 **v2.24.6 — a spotter with any symbol suffix (`K4TEA-@`, DX-Spider's
 web-entry mark) goes out without the dangling dash. Released with the
 Windows zip 2026-11-20 and on four hosts the same day: .109, Windows
@@ -784,7 +787,7 @@ and the web GUI's design system from the same repo's
 cutover. noderedpi4's install is stopped and disabled, kept as the
 rollback. The 1.x macOS app is the retained fallback (maintenance mode).
 
-## Session 2026-11-27 — alert source on the MQTT status topic (2.24.7 fleet-wide, unreleased)
+## Session 2026-11-27 — alert source on the MQTT status topic (v2.24.7)
 
 Manoj wanted the shack dashboard's DXCA card (vu2cpl-shack, Vue v63) to
 show where each of the last five alerts came from. `alert_summary` in
@@ -808,9 +811,8 @@ Windows `.170` (`win-deploy.sh`, `dxca.exe.bak` kept), adersh and vu2oy
 (each `dxca.rollback-v2.24.6` + `dxca.db.pre-v2.24.7`, md5 checked,
 `pi-deploy.sh --no-seed`). `fleet-status.py`: **all five on 2.24.7**, .109
 8/8, `.170` 2/2, adersh 5/5, vu2wj 3/3, vu2oy 4/4 (2/4 in the first seconds
-after its restart). **Open:**
-cut the v2.24.7 release (README notes, Windows zip) so the release page
-and VU2PTT catch up; the fleet itself needs no further round.
+after its restart). **Released** as v2.24.7 with the Windows zip the same night, on Manoj's
+"release"; VU2PTT gets it from the release page.
 
 ## Session 2026-11-20 (later) — `-@` spotters left a dash too
 

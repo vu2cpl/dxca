@@ -25,6 +25,13 @@ project — joint work by Basil Thomas W6BT, Vinod VU3ESV, and Ram VU3RDD
 
 ## Status
 
+**v2.24.7** (2026-11-27): **alerts on the MQTT status topic say where they
+came from.** Each entry in `recent_alerts` on `<base>/status/<CALL>` now
+carries `source` (the cluster node or receiver the spot came in on, such as
+`DB0SUE` or `Hamalert`) and `spotter` (the station that spotted it; empty
+for local decodes). A dashboard tile showing the last alerts can now name
+the node. Nothing else changes, and nothing to change in settings.
+
 **v2.24.6** (2026-11-20): **no stray dash after any spotter.** v2.24.5 fixed
 skimmer `-#`, but a spot entered on a DX-Spider web page arrives as
 `K4TEA-@`. DXCA dropped the `@` and kept the dash, so RUMlog still showed
@@ -1811,7 +1818,7 @@ Tick **Status** on a destination and DXCA also publishes two kinds of
 | topic | payload |
 |---|---|
 | `<base>/status` | `{"ts":…,"version":"2.24.0","clusters_online":8,"clusters_total":9,"clusters":{"VU2CPL":{"connected":true,"state":"Live","spot_count":…,"last_spot_unix":…},…},"spots_per_source":{…}}` |
-| `<base>/status/<CALL>` | `{"ts":…,"callsign":"VU2CPL","stats":{"dxcc_worked":…,"dxcc_confirmed":…,"slots_worked":…,"slots_confirmed":…,"challenge_worked":…,"challenge_confirmed":…},"stats_current":{…},"award_stats":{"was_worked":…,"was_confirmed":…,"triple_play":…,"waz_worked":…,"waz_confirmed":…,"iota_worked":…,"iota_confirmed":…,"vucc":[{"band":"6M","worked":…,"confirmed":…}]},"qso_count":…,"last_refresh_unix":…,"recent_alerts":[{"time_unix":…,"callsign":"3Y0J","band":"20M","mode":"FT8","dxcc_name":"Bouvet","level":"new_dxcc"},…]}` |
+| `<base>/status/<CALL>` | `{"ts":…,"callsign":"VU2CPL","stats":{"dxcc_worked":…,"dxcc_confirmed":…,"slots_worked":…,"slots_confirmed":…,"challenge_worked":…,"challenge_confirmed":…},"stats_current":{…},"award_stats":{"was_worked":…,"was_confirmed":…,"triple_play":…,"waz_worked":…,"waz_confirmed":…,"iota_worked":…,"iota_confirmed":…,"vucc":[{"band":"6M","worked":…,"confirmed":…}]},"qso_count":…,"last_refresh_unix":…,"recent_alerts":[{"time_unix":…,"callsign":"3Y0J","band":"20M","mode":"FT8","dxcc_name":"Bouvet","level":"new_dxcc","source":"DB0SUE","spotter":"EA3EDU"},…]}` |
 
 These are the numbers on the Spots screen's station card and the last five
 rows of **Alerts**, for a dashboard (Home Assistant, Node-RED) that should
